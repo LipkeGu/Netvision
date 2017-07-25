@@ -1,0 +1,481 @@
+﻿#EXTM3U
+#EXTINF:-1 tvg-id="1566" tvg-logo="1566_3175.png",Vodafone Infochannel
+
+#EXTINF:-1,ALEX Berlin
+http://alex-stream.rosebud-media.de:1935/live/alexlivetv.smil/playlist.m3u8
+#EXTINF:-1,ARD-alpha
+http://livestreams.br.de/i/bralpha_germany@119899/master.m3u8
+#EXTINF:-1 tvg-id="1" tvg-logo="1.png",Das Erste
+http://daserste_live-lh.akamaihd.net/i/daserste_de@91204/master.m3u8
+#EXTINF:-1 tvg-id="2" tvg-logo="2.png",ZDF
+http://zdf1314-lh.akamaihd.net/i/de14_v1@392878/master.m3u8
+#EXTINF:-1 tvg-id="4" tvg-logo="4.png",RTL
+
+#EXTINF:-1,Euronews
+http://fr-par-iphone-2.cdn.hexaglobe.net/streaming/euronews_ewns/14-live.m3u8
+#EXTINF:-1 tvg-id="5" tvg-logo="5_4187.png",SAT.1
+
+#EXTINF:-1 tvg-id="6" tvg-logo="6.png",ProSieben
+
+#EXTINF:-1 tvg-id="11" tvg-logo="11_3105.png",VOX
+
+#EXTINF:-1 tvg-id="9" tvg-logo="9.png",RTL II
+
+#EXTINF:-1,MDF 1
+http://62.113.210.250/medienasa-live/mdf1_high/playlist.m3u8
+#EXTINF:-1 tvg-id="8" tvg-logo="8_3062.png",kabel eins
+
+#EXTINF:-1 tvg-id="118" tvg-logo="118.png",3sat
+http://zdf0910-lh.akamaihd.net/i/dach10_v1@392872/master.m3u8
+#EXTINF:-1 tvg-id="10" tvg-logo="10.png",ARTE
+http://artelive-lh.akamaihd.net/i/artelive_de@393591/master.m3u8
+#EXTINF:-1 tvg-id="4119" tvg-logo="4119.png",ServusTV
+http://hdiosstv-f.akamaihd.net/i/servustvhdde_1@75540/master.m3u8
+#EXTINF:-1 tvg-id="3520" tvg-logo="3520.png",MDR S-Anhalt
+http://mdr_sa_hls-lh.akamaihd.net/i/livetvmdrsachsenanhalt_de@106901/master.m3u8
+#EXTINF:-1 tvg-id="3521" tvg-logo="3521.png",MDR Sachsen
+http://mdr_sachsen_hls-lh.akamaihd.net/i/livetvmdrsachsen_de@106902/master.m3u8
+#EXTINF:-1 tvg-id="3522" tvg-logo="3522.png",MDR Thüringen
+http://mdr_th_hls-lh.akamaihd.net/i/livetvmdrthueringen_de@106903/master.m3u8
+#EXTINF:-1 tvg-id="3525" tvg-logo="3525.png",NDR FS MV
+http://ndr_fs-lh.akamaihd.net/i/ndrfs_mv@119226/master.m3u8
+#EXTINF:-1 tvg-id="3524" tvg-logo="3524.png",NDR FS HH
+http://ndrfs.ndr.de/i/ndrfs_hh@119223/index_3776_av-p.m3u8
+#EXTINF:-1 tvg-id="19" tvg-logo="19.png",NDR FS NDS
+http://ndr_fs-lh.akamaihd.net/i/ndrfs_nds@119224/master.m3u8
+#EXTINF:-1 tvg-id="3526" tvg-logo="3526.png",NDR FS SH
+http://ndrfs.ndr.de/i/ndrfs_sh@119225/master.m3u8
+#EXTINF:-1 tvg-id="35" tvg-logo="35.png",rbb Brandenburg
+http://rbb_live-lh.akamaihd.net/i/rbb_brandenburg@107638/master.m3u8
+#EXTINF:-1 tvg-id="3528" tvg-logo="3528.png",rbb Berlin
+http://rbb_live-lh.akamaihd.net/i/rbb_berlin@108248/master.m3u8
+#EXTINF:-1 tvg-id="18" tvg-logo="18_3271.png",BR Süd
+http://livestreams.br.de/i/bfssued_germany@119890/master.m3u8
+#EXTINF:-1 tvg-id="17" tvg-logo="17.png",WDR
+http://www.metafilegenerator.de/WDR/WDR_FS/m3u8/wdrfernsehen.m3u8
+#EXTINF:-1 tvg-id="26" tvg-logo="26.png",hr-fernsehen
+http://live1_hr-lh.akamaihd.net/i/hr_fernsehen@75910/master.m3u8
+#EXTINF:-1,OK Trier
+http://stream-cdn.ok54.de/hls/ok54.m3u8
+#EXTINF:-1,Austria 24
+rtmp://streaming.austria24.tv/live/stream_360p
+#EXTINF:-1,Elbe Kanal
+rtmp://62.113.210.250/medienasa-live/elbe_high
+#EXTINF:-1 tvg-id="30" tvg-logo="30.png",SWR Fernsehen RP
+http://swrrp-lh.akamaihd.net/i/swrrp_live@196739/master.m3u8
+#EXTINF:-1 tvg-id="31" tvg-logo="31.png",SR Fernsehen
+http://livestream.sr-online.de/live.m3u8
+#EXTINF:-1 tvg-id="5424" tvg-logo="5424.png",BR Nord
+http://livestreams.br.de/i/bfsnord_germany@119898/master.m3u8
+
+#EXTINF:-1 tvg-id="4967" tvg-logo="4967.png",SWR Fernsehen BW
+http://swrbw-lh.akamaihd.net/i/swrbw_live@196738/master.m3u8
+#EXTINF:-1 tvg-id="121" tvg-logo="121.png",COMEDY CENTRAL / VIVA
+
+#EXTINF:-1 tvg-id="105" tvg-logo="105.png",TELE 5
+
+#EXTINF:-1,L-TV (Baden Württemberg)
+rtmp://62.113.221.4/tv2000plus2-live/livestream3.stream
+#EXTINF:-1,Rhein-Neckar Fernsehen
+http://rnf.iptv-playoutcenter.de:1935/rnf/rnf.stream_1/playlist.m3u8
+#EXTINF:-1,Halle TV
+http://62.113.210.250/medienasa-live/tvhalle_high/master.m3u8
+#EXTINF:-1,Tele Züri HD
+http://klive-a.akamaihd.net/dc-1/live/hls/p/1719221/e/1_hoislpiz/t/Bnhb6PI9GIjiKE7UgQC_qg/index-s32.m3u8
+#EXTINF:-1,NRW.TV
+http://streaming006.broadcast.tneg.de:1935/nrwtv-new/_definst_/smil:nrw.smil/playlist.m3u8
+#EXTINF:-1,NASA TV HD #1 (US)
+http://nasatv-lh.akamaihd.net/i/NASA_103@319271/master.m3u8
+#EXTINF:-1,NASA TV - Public Education (US)
+http://nasatv-lh.akamaihd.net/i/NASA_101@319270/master.m3u8
+#EXTINF:-1,NASA TV - ISS (Outside)
+http://iphone-streaming.ustream.tv/uhls/17074538/streams/live/iphone/playlist.m3u8
+#EXTINF:-1,NASA TV - ISS (Inside)
+http://iphone-streaming.ustream.tv/uhls/9408562/streams/live/iphone/playlist.m3u8
+#EXTINF:-1,Isar TV
+http://isar-tv.iptv-playoutcenter.de:1935/isar-tv/isar-tv.stream_3/playlist.m3u8
+#EXTINF:-1 tvg-id="931" tvg-logo="931_3231.png",Disney Channel
+http://delivestream-lh.akamaihd.net/i/live_1@320996/master.m3u8
+#EXTINF:-1 tvg-id="955" tvg-logo="955_3899.png",One
+http://wdr_einsfestival-lh.akamaihd.net/i/wdr_einsfestival@328300/master.m3u8
+#EXTINF:-1 tvg-id="4130" tvg-logo="4130.png",ZDFneo
+http://zdf1314-lh.akamaihd.net/i/de13_v1@392877/master.m3u8
+#EXTINF:-1 tvg-id="1562" tvg-logo="1562.png",AstroTV
+http://rrbalancer.broadcast.tneg.de:1935/astrotv/smil:astro.smil/playlist.m3u8
+#EXTINF:-1 tvg-id="30774" tvg-logo="30774_3856.png",RTLplus
+
+#EXTINF:-1 tvg-id="4947" tvg-logo="4947.png",RTL NITRO
+
+#EXTINF:-1 tvg-id="4218" tvg-logo="4218.png",sixx
+
+#EXTINF:-1 tvg-id="5602" tvg-logo="5602.png",SAT.1 Gold
+
+#EXTINF:-1 tvg-id="9159" tvg-logo="9159.png",ProSieben MAXX
+
+#EXTINF:-1 tvg-id="23939" tvg-logo="23939_3815.png",TLC
+
+#EXTINF:-1 tvg-id="3877" tvg-logo="3877.png",ANIXE SD
+http://video1.anixehd.tv:8080/Apple/wifistream.m3u8
+#EXTINF:-1 tvg-id="4731" tvg-logo="4731.png",E! Entertainment
+
+#EXTINF:-1 tvg-id="1513" tvg-logo="1513.png",Bon Gusto
+
+#EXTINF:-1 tvg-id="718" tvg-logo="718_3150.png",RTL Living
+
+#EXTINF:-1 tvg-id="4633" tvg-logo="4633_2905.png",MTV
+
+#EXTINF:-1 tvg-id="4640" tvg-logo="4640_2898.png",COMEDY CENTRAL/VIVA
+
+#EXTINF:-1 tvg-id="28165" tvg-logo="28165_4232.png",Sat.1 Gold
+
+#EXTINF:-1 tvg-id="702" tvg-logo="702.png",SAT.1 emotions
+
+#EXTINF:-1 tvg-id="3798" tvg-logo="3798.png",Animax
+
+#EXTINF:-1 tvg-id="4977" tvg-logo="4977_4221.png",ProSieben FUN
+
+#EXTINF:-1 tvg-id="9297" tvg-logo="9297_4222.png",Sat.1 emotions
+
+#EXTINF:-1 tvg-id="4943" tvg-logo="4943_3171.png",HSE24
+http://c17001-l.z.core.cdn.streamfarm.net/10018xhse24/smil:classicmobile.smil/chunklist-b500.m3u8
+#EXTINF:-1 tvg-id="4944" tvg-logo="4944_3039.png",QVC
+http://ios-stream.qvc.de/qvc.m3u8
+#EXTINF:-1 tvg-id="1559" tvg-logo="1559.png",1-2-3.tv
+
+#EXTINF:-1 tvg-id="802" tvg-logo="802.png",Channel21
+
+#EXTINF:-1,Dessau TV
+rtmp://62.113.210.250/medienasa-live/ok-dessau_high
+#EXTINF:-1,Magdeburg TV
+rtmp://62.113.210.250/medienasa-live/ok-magdeburg_high
+#EXTINF:-1,Salzwedel TV
+rtmp://62.113.210.250/medienasa-live/ok-salzwedel_high
+#EXTINF:-1,Stendal TV
+rtmp://62.113.210.250/medienasa-live/ok-stendal_high
+#EXTINF:-1,Wernigerode TV
+rtmp://62.113.210.250/medienasa-live/ok-wernigerode_high
+#EXTINF:-1,RTL Tele Letzebourg
+rtmp://wowza01.newmedia.lu/channel1/live
+#EXTINF:-1,Augsburg TV
+rtmp://augsburgtv.iptv-playoutcenter.de/augsburgtv/augsburgtv.stream_1
+#EXTINF:-1,München TV
+rtmp://muenchentv.iptv-playoutcenter.de/muenchentv/muenchentv.stream_1
+
+#EXTINF:-1 tvg-id="1568" tvg-logo="1568.png",sonnenklar.TV
+
+#EXTINF:-1 tvg-id="1565" tvg-logo="1565.png",Juwelo TV
+
+#EXTINF:-1 tvg-id="23944" tvg-logo="23944_3169.png",HSE24 EXTRA
+
+#EXTINF:-1 tvg-id="23942" tvg-logo="23942.png",QVC PLUS
+
+#EXTINF:-1 tvg-id="3865" tvg-logo="3865.png",13th Street
+
+#EXTINF:-1 tvg-id="3866" tvg-logo="3866.png",Syfy
+
+#EXTINF:-1 tvg-id="844" tvg-logo="844.png",KinoweltTV
+
+#EXTINF:-1 tvg-id="847" tvg-logo="847_3081.png",AXN
+
+#EXTINF:-1 tvg-id="838" tvg-logo="838.png",Silverline
+
+#EXTINF:-1 tvg-id="701" tvg-logo="701.png",kabel eins CLASSICS
+
+#EXTINF:-1 tvg-id="4945" tvg-logo="4945_3629.png",TNT Comedy
+
+#EXTINF:-1 tvg-id="717" tvg-logo="717.png",TNT Film
+
+#EXTINF:-1 tvg-id="3906" tvg-logo="3906.png",TNT Serie
+
+#EXTINF:-1 tvg-id="3823" tvg-logo="3823.png",FOX
+
+#EXTINF:-1 tvg-id="3805" tvg-logo="3805_3056.png",Romance TV
+
+#EXTINF:-1 tvg-id="9164" tvg-logo="9164.png",Universal Channel
+
+#EXTINF:-1 tvg-id="10096" tvg-logo="10096_2907.png",Sony Entertainment TV
+
+#EXTINF:-1 tvg-id="12" tvg-logo="12_4073.png",SPORT1
+
+#EXTINF:-1 tvg-id="107" tvg-logo="107_3142.png",Eurosport 1
+
+#EXTINF:-1 tvg-id="865" tvg-logo="865_3138.png",Eurosport 2
+
+#EXTINF:-1 tvg-id="4250" tvg-logo="4250_3114.png",SPORT1+
+
+#EXTINF:-1 tvg-id="9160" tvg-logo="9160_3166.png",Sport1 US
+
+#EXTINF:-1 tvg-id="3802" tvg-logo="3802_3168.png",sportdigital
+
+#EXTINF:-1 tvg-id="57" tvg-logo="57.png",ARD-alpha
+
+#EXTINF:-1 tvg-id="227" tvg-logo="227_3156.png",DMAX
+
+#EXTINF:-1 tvg-id="937" tvg-logo="937.png",PLANET
+
+#EXTINF:-1 tvg-id="23072" tvg-logo="23072_2906.png",Welt der Wunder
+http://live.vidoo.de/live/weltderwunder/playlist.m3u8
+#EXTINF:-1 tvg-id="16002" tvg-logo="16002_3996.png",kabel eins Doku
+
+#EXTINF:-1 tvg-id="854" tvg-logo="854.png",HISTORY
+
+#EXTINF:-1 tvg-id="721" tvg-logo="721_3159.png",A&E
+
+#EXTINF:-1 tvg-id="845" tvg-logo="845_4185.png",National Geographic
+
+#EXTINF:-1 tvg-id="4723" tvg-logo="4723_4182.png",SPIEGEL TV WISSEN
+
+#EXTINF:-1 tvg-id="23497" tvg-logo="23497.png",NAT GEO people
+
+#EXTINF:-1 tvg-id="30008" tvg-logo="30008_3079.png",Discovery (KD)
+
+#EXTINF:-1 tvg-id="16010" tvg-logo="16010_4331.png",GEO TV
+
+#EXTINF:-1 tvg-id="837" tvg-logo="837.png",Bibel TV
+
+#EXTINF:-1 tvg-id="7" tvg-logo="7.png",n-tv
+http://p.live.akamai.n-tv.de/hls-live/ntvlive/ntvlive_1500.m3u8
+#EXTINF:-1 tvg-id="206" tvg-logo="206.png",PHOENIX
+http://zdf0910-lh.akamaihd.net/i/de09_v1@392871/master.m3u8
+#EXTINF:-1 tvg-id="953" tvg-logo="953.png",N24
+http://live2weltcms-lh.akamaihd.net/i/Live2WeltCMS_1@444563/master.m3u8
+#EXTINF:-1 tvg-id="962" tvg-logo="962.png",tagesschau24
+http://tagesschau-lh.akamaihd.net/i/tagesschau_1@119231/master.m3u8
+#EXTINF:-1 tvg-id="963" tvg-logo="963.png",ZDFinfo
+http://zdf1112-lh.akamaihd.net/i/de12_v1@392882/master.m3u8
+#EXTINF:-1 tvg-id="112" tvg-logo="112_3176.png",BBC World News (eng)
+
+#EXTINF:-1 tvg-id="2025" tvg-logo="2025.png",CNN International (eng)
+
+#EXTINF:-1 tvg-id="3737" tvg-logo="3737.png",Al Jazeera Int (eng)
+
+#EXTINF:-1 tvg-id="179" tvg-logo="179.png",SUPER RTL
+
+#EXTINF:-1 tvg-id="63" tvg-logo="63.png",KiKA
+http://kika_geo-lh.akamaihd.net/i/livetvkika_de@75114/master.m3u8
+#EXTINF:-1 tvg-id="882" tvg-logo="882.png",Nickelodeon
+
+#EXTINF:-1 tvg-id="976" tvg-logo="976.png",Disney XD
+
+#EXTINF:-1 tvg-id="16001" tvg-logo="16001_3827.png",TOGGO plus
+
+#EXTINF:-1 tvg-id="4114" tvg-logo="4114.png",Disney Junior
+
+#EXTINF:-1 tvg-id="1511" tvg-logo="1511_3158.png",Boomerang
+
+#EXTINF:-1 tvg-id="902" tvg-logo="902.png",Cartoon Network
+
+#EXTINF:-1 tvg-id="24488" tvg-logo="24488_2902.png",Nick Jr.
+
+#EXTINF:-1 tvg-id="9289" tvg-logo="9289_2900.png",Disney Jr.
+
+#EXTINF:-1 tvg-id="9319" tvg-logo="9319_3160.png",Deutsches Musik Fernsehen
+
+#EXTINF:-1,TV Berlin
+http://stream.der-hauptstadt-sender.de/hls/Themeh4g.m3u8
+#EXTINF:-1,Deutsche Welle
+http://dwstream72-lh.akamaihd.net/i/dwstream72_live@123556/master.m3u8
+#EXTINF:-1 tvg-id="3800" tvg-logo="3800_3172.png",DELUXE MUSIC
+
+#EXTINF:-1 tvg-id="9095" tvg-logo="9095_3830.png",Deluxe Music
+https://streaming-02.mivitec.net/live/smil:test.smil/playlist.m3u8
+#EXTINF:-1 tvg-id="4291" tvg-logo="4291.png",MTV Brand New
+
+#EXTINF:-1 tvg-id="1508" tvg-logo="1508.png",Gute Laune TV
+
+#EXTINF:-1 tvg-id="3780" tvg-logo="3780.png",RCK TV
+
+#EXTINF:-1 tvg-id="3778" tvg-logo="3778.png",Jukebox
+
+#EXTINF:-1 tvg-id="4134" tvg-logo="4134.png",LUST PUR
+
+#EXTINF:-1 tvg-id="24059" tvg-logo="24059.png",MovieMax Turk (tur)
+
+#EXTINF:-1 tvg-id="3555" tvg-logo="3555.png",Turkmax gurme (tur)
+
+#EXTINF:-1 tvg-id="23328" tvg-logo="23328_4011.png",tv8 (tur)
+
+#EXTINF:-1 tvg-id="1532" tvg-logo="1532.png",Show Turk (tur)
+
+#EXTINF:-1 tvg-id="4215" tvg-logo="4215_3814.png",CNN TÜRK (tur)
+
+#EXTINF:-1 tvg-id="990" tvg-logo="990.png",Euro D (tur)
+
+#EXTINF:-1 tvg-id="1540" tvg-logo="1540.png",Kanal 7 Avrupa (tur)
+
+#EXTINF:-1 tvg-id="1564" tvg-logo="1564.png",Euro Star (tur)
+
+#EXTINF:-1 tvg-id="1572" tvg-logo="1572.png",TV Polonia (pol)
+
+#EXTINF:-1 tvg-id="1539" tvg-logo="1539.png",iTVN (pol)
+
+#EXTINF:-1 tvg-id="1530" tvg-logo="1530_3706.png",RTVD (rus)
+
+#EXTINF:-1 tvg-id="1541" tvg-logo="1541_3021.png",Kinomir (rus)
+
+#EXTINF:-1 tvg-id="9011" tvg-logo="9011_3022.png",Telebom/Teledom (rus)
+
+#EXTINF:-1 tvg-id="1537" tvg-logo="1537.png",Channel One Russia (rus)
+
+#EXTINF:-1 tvg-id="1531" tvg-logo="1531.png",RTR-Planeta (rus)
+
+#EXTINF:-1 tvg-id="2507" tvg-logo="2507.png",France 2 (fre)
+
+#EXTINF:-1 tvg-id="2559" tvg-logo="2559.png",TV 5 Monde (fre)
+
+#EXTINF:-1 tvg-id="2508" tvg-logo="2508.png",France 3 (fre)
+
+#EXTINF:-1 tvg-id="2632" tvg-logo="2632.png",France 24 (fre)
+
+#EXTINF:-1 tvg-id="9252" tvg-logo="9252_3177.png",SONLife (eng)
+
+#EXTINF:-1 tvg-id="4115" tvg-logo="4115.png",TNT Serie (eng)
+
+#EXTINF:-1 tvg-id="3969" tvg-logo="3969.png",TNT Film (eng)
+
+#EXTINF:-1 tvg-id="3870" tvg-logo="3870_3098.png",AXN (eng)
+
+#EXTINF:-1 tvg-id="2043" tvg-logo="2043.png",BBC Entertainment (eng)
+
+#EXTINF:-1 tvg-id="4539" tvg-logo="4539_2916.png",National Geographic (eng)
+
+#EXTINF:-1 tvg-id="9162" tvg-logo="9162.png",Sport1 US (eng)
+
+#EXTINF:-1 tvg-id="4125" tvg-logo="4125.png",Disney XD (eng)
+
+#EXTINF:-1 tvg-id="4124" tvg-logo="4124.png",Disney Junior (eng)
+
+#EXTINF:-1 tvg-id="3876" tvg-logo="3876_3174.png",Boomerang (eng)
+
+#EXTINF:-1 tvg-id="3964" tvg-logo="3964.png",Cartoon Network (eng)
+
+#EXTINF:-1 tvg-id="3034" tvg-logo="3034.png",Rai 1 (ita)
+
+#EXTINF:-1 tvg-id="3023" tvg-logo="3023.png",Rai 2 (ita)
+
+#EXTINF:-1 tvg-id="3033" tvg-logo="3033.png",Rai 3 (ita)
+
+#EXTINF:-1 tvg-id="3267" tvg-logo="3267.png",TVE Internacional (spa)
+
+#EXTINF:-1 tvg-id="1536" tvg-logo="1536.png",Canal 24 Horas (spa)
+
+#EXTINF:-1 tvg-id="2562" tvg-logo="2562.png",RTP Internacional (por)
+
+#EXTINF:-1 tvg-id="4194" tvg-logo="4194.png",HRT 1 (hrv)
+
+#EXTINF:-1 tvg-id="16005" tvg-logo="16005_4084.png",Sky1HD
+
+#EXTINF:-1 tvg-id="4978" tvg-logo="4978_3141.png",Sky Atlantic
+
+#EXTINF:-1 tvg-id="4222" tvg-logo="4222_4008.png",Sky Cinema
+
+#EXTINF:-1 tvg-id="4638" tvg-logo="4638_4336.png",Sky Cinema Hits
+
+#EXTINF:-1 tvg-id="4274" tvg-logo="4274_4004.png",Sky Cinema Action
+
+#EXTINF:-1 tvg-id="4221" tvg-logo="4221.png",Disney Cinemagic
+
+#EXTINF:-1 tvg-id="983" tvg-logo="983_3997.png",Sky Cinema +1
+
+#EXTINF:-1 tvg-id="984" tvg-logo="984_3998.png",Sky Cinema +24
+
+#EXTINF:-1 tvg-id="4096" tvg-logo="4096_3999.png",Sky Cinema Comedy
+
+#EXTINF:-1 tvg-id="4097" tvg-logo="4097_4000.png",Sky Cinema Emotion
+
+#EXTINF:-1 tvg-id="940" tvg-logo="940_4006.png",Sky Cinema Nostalgie
+
+#EXTINF:-1 tvg-id="4099" tvg-logo="4099.png",NatGeo
+
+#EXTINF:-1 tvg-id="4736" tvg-logo="4736.png",NatGeo Wild
+
+#EXTINF:-1 tvg-id="895" tvg-logo="895.png",Discovery
+
+#EXTINF:-1 tvg-id="9375" tvg-logo="9375_3247.png",Fox
+
+#EXTINF:-1 tvg-id="16004" tvg-logo="16004_4085.png",Sky1
+
+#EXTINF:-1 tvg-id="936" tvg-logo="936_3136.png",Sky Krimi
+
+#EXTINF:-1 tvg-id="719" tvg-logo="719.png",RTL Crime
+
+#EXTINF:-1 tvg-id="720" tvg-logo="720.png",RTL Passion
+
+#EXTINF:-1 tvg-id="27323" tvg-logo="27323.png",Fox Serie
+
+#EXTINF:-1 tvg-id="934" tvg-logo="934.png",SyFy
+
+#EXTINF:-1,Sylt 1 
+http://62.67.13.54:1935/sylt1/sylt1_high.stream/chunklist.m3u8
+#EXTINF:-1 tvg-id="944" tvg-logo="944.png",Beate-Uhse.TV
+
+#EXTINF:-1 tvg-id="916" tvg-logo="916.png",Heimatkanal
+
+#EXTINF:-1 tvg-id="975" tvg-logo="975.png",Goldstar TV
+
+#EXTINF:-1 tvg-id="3980" tvg-logo="3980_3121.png",Classica
+
+#EXTINF:-1 tvg-id="930" tvg-logo="930.png",Junior
+
+#EXTINF:-1 tvg-id="933" tvg-logo="933.png",Discovery Channel
+
+#EXTINF:-1 tvg-id="4101" tvg-logo="4101.png",Spiegel Geschichte
+
+#EXTINF:-1 tvg-id="16006" tvg-logo="16006_4219.png",Sky Cinema Family
+
+#EXTINF:-1 tvg-id="4739" tvg-logo="4739_3898.png",Sky Sport News
+http://event_rtmp-lh.akamaihd.net/i/ssnhd_1@433299/master.m3u8
+#EXTINF:-1 tvg-id="9098" tvg-logo="9098_3893.png",Sky Sport Bundesliga 1
+
+#EXTINF:-1 tvg-id="9268" tvg-logo="9268_3879.png",Sky Sport Bundesliga 2
+
+#EXTINF:-1 tvg-id="9269" tvg-logo="9269_3894.png",Sky Sport Bundesliga 3
+
+#EXTINF:-1 tvg-id="9270" tvg-logo="9270_3880.png",Sky Sport Bundesliga 4
+
+#EXTINF:-1 tvg-id="4104" tvg-logo="4104_3877.png",Sky Sport 1
+
+#EXTINF:-1 tvg-id="4248" tvg-logo="4248_3878.png",Sky Sport 2
+
+#EXTINF:-1 tvg-id="9142" tvg-logo="9142_3882.png",Sky Sport 3
+
+#EXTINF:-1 tvg-id="9143" tvg-logo="9143_3876.png",Sky Sport 4
+
+#EXTINF:-1 tvg-id="9144" tvg-logo="9144_3881.png",Sky Sport 5
+
+#EXTINF:-1 tvg-id="9306" tvg-logo="9306.png",Eurosport3601
+
+#EXTINF:-1 tvg-id="9307" tvg-logo="9307.png",Eurosport3602
+
+#EXTINF:-1 tvg-id="9308" tvg-logo="9308.png",Eurosport3603
+
+#EXTINF:-1 tvg-id="4105" tvg-logo="4105_3897.png",Sky Sport Austria
+
+#EXTINF:-1 tvg-id="2129" tvg-logo="2129_3861.png",Zee.One
+
+#EXTINF:-1,TecTime TV HD
+http://tectime.iptv-playoutcenter.de:1935/tectime/tectime.stream/playlist.m3u8
+#EXTINF:-1,RIC
+http://83.169.58.38/live/3fb1c9c9-09c8-404a-8c0f-56b27617ab89/playlist.m3u8
+#EXTINF:-1,NRJ TV
+http://livevideo.infomaniak.com/streaming/livecast/energytv/playlist.m3u8
+#EXTINF:-1,Kronehit TV
+http://bitcdn-kronehit-live.bitmovin.com/m3u8s/bitcodin.m3u8
+#EXTINF:-1,Hamburg 1
+https://sdn-global-live-http-cache.3qsdn.com/live/_definst_/mp4:5655_F7KT9xCQkXwbNmq/chunklist.m3u8
+#EXTINF:-1 tvg-id="orf1" tvg-logo="",ORF 1
+http://apasfiisl.apa.at/ipad/orf1_q4a/orf.sdp/playlist.m3u8
+#EXTINF:-1 tvg-id="orf2" tvg-logo="",ORF 2
+http://apasfiisl.apa.at/ipad/orf2_q4a/orf.sdp/playlist.m3u8
+#EXTINF:-1 tvg-id="orf3" tvg-logo="",ORF 3
+http://apasfiisl.apa.at/ipad/orf3_q4a/orf.sdp/playlist.m3u8
+#EXTINF:-1 tvg-id="" tvg-logo="" tvg-name="Family TV",Family TV
+https://sdn-global-live-http-cache.3qsdn.com/live/_definst_/smil:5725-mbr.smil/playlist.m3u8
+#EXTINF:-1 tvg-id="" tvg-logo="" tvg-name="Blizz TV"  group-title="Standard",Blizz TV
+https://sdn-global-live-http-cache.3qsdn.com/live/_definst_/smil:5726-mbr.smil/playlist.m3u8
+#EXTINF:-1 tvg-id="" tvg-logo="" tvg-name="Melodie TV"  group-title="Standard",Melodie TV
+http://83.169.58.40:1935/live/_definst_/Melodie/playlist.m3u8
+#EXTINF:-1 tvg-id="joiz.de" tvg-logo="joiz.png" tvg-name="JOIZ"  group-title="Standard",JOIZ
+http://ooyalahd2-f.akamaihd.net/i/joizgerm01_delivery@324125/master.m3u8
+#EXTINF:-1 tvg-id="" tvg-logo="" tvg-name="Hunt Chunnel",Hunt Channel
+http://studio.huntchannel.tv:8081/live/playout/playlist.m3u8

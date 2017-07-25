@@ -20,7 +20,8 @@ namespace Netvision.Backend
 	{
 		Playlist,
 		Epg,
-		Logo
+		WebSite,
+		Unknown
 	}
 	
 	public class Backend
@@ -49,7 +50,6 @@ namespace Netvision.Backend
 
 		public Backend(int port = 81)
 		{
-
 			HTTPSockets = new Dictionary<string, HTTPSocket>();
 
 			HTTPSockets.Add("backend", new HTTPSocket("*", 81, string.Empty));
@@ -63,25 +63,28 @@ namespace Netvision.Backend
 
 			HTTPSockets["backend"].DataReceived += (sender, e) =>
 			{
-				/*
-				if (!e.UserAgent.Contains("Kodi"))
+				switch (e.Target)
 				{
-					e.Context.Response.StatusCode = 403;
-					e.Context.Response.StatusDescription = "Forbidden";
-					
-					HTTPSockets["backend"].Send(new byte[0], ref e.Context);
+					case BackendTarget.Playlist:
+					case BackendTarget.Epg:
+						var evArgs = new BackendRequestEventArgs();
+						evArgs.Context = e.Context;
+						evArgs.Target = e.Target;
 
-					return;
+						BackendRequest?.Invoke(this, evArgs);
+
+						break;
+					case BackendTarget.WebSite:
+					case BackendTarget.Unknown:
+					default:
+						e.Context.Response.StatusCode = 404;
+						e.Context.Response.StatusDescription = "Not Found";
+						HTTPSockets["backend"].Send(new byte[0], ref e.Context);
+						break;
 				}
-				*/
-
-				var evArgs = new BackendRequestEventArgs();
-				evArgs.Context = e.Context;
-				evArgs.Target = BackendTarget.Playlist;
-				BackendRequest?.Invoke(this, evArgs);
 			};
 
-			website = new Network.WebSite(this);
+			website = new WebSite(this);
 			website.WebSiteResponse += (sender, e) =>
 			{
 				HTTPSockets["website"].Send(Encoding.UTF8.

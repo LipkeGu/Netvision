@@ -3,7 +3,7 @@ using System.IO;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Netvision.Backend.Common
+namespace Netvision.Backend
 {
 	public class Filesystem : IDisposable
 	{
@@ -12,7 +12,7 @@ namespace Netvision.Backend.Common
 
 		public Filesystem(string path, int cache = 4096)
 		{
-			this.rootDir = path;
+			this.rootDir = !string.IsNullOrEmpty(path) ? path : Directory.GetCurrentDirectory();
 			this.fscache = cache;
 
 			Directory.CreateDirectory(rootDir);
@@ -34,6 +34,7 @@ namespace Netvision.Backend.Common
 
 		public string ResolvePath(string path, bool strip = true)
 		{
+
 			var p = path.Trim();
 
 			if (p.StartsWith("/") && p.Length > 3 && strip)
@@ -56,6 +57,11 @@ namespace Netvision.Backend.Common
 				path = ReplaceSlashes(Path.Combine(path, paths[i]), "\\", "/");
 
 			return path;
+		}
+
+		public async Task<string> ReadText(string path, Encoding encoding)
+		{
+			return encoding.GetString(await Read(path));
 		}
 
 		public async Task<byte[]> Read(string path, int offset = 0, int count = 0)
@@ -89,6 +95,11 @@ namespace Netvision.Backend.Common
 			var tmp = Encoding.UTF8.GetBytes(chars, 0, chars.Length);
 
 			Write(path, ref tmp, offset, count);
+		}
+
+		void GZipDecompress(string filename)
+		{
+
 		}
 
 		public void Dispose()

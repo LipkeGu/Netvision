@@ -31,10 +31,16 @@ namespace Netvision.Backend
 			public HttpListenerContext Context;
 		}
 
+		PlayListProvider playlist;
+		EPGProvider epg;
+		ChannelProvider channel;
+
 		public BackendHub(Network.Backend backend)
 		{
-			var playlistProvider = new PlayListProvider(this);
-			playlistProvider.PlayListResponse += (sender, e) => {
+			channel = new ChannelProvider(this);
+			
+			playlist = new PlayListProvider(this);
+			playlist.PlayListResponse += (sender, e) => {
 				var evArgs = new BackendHubResponseEventArgs();
 				evArgs.Response = e.Response;
 				evArgs.Context = e.Context;
@@ -42,8 +48,8 @@ namespace Netvision.Backend
 				BackendHubResponse?.Invoke(this, evArgs);
 			};
 
-			var EPGProvider = new EPGProvider(this);
-			EPGProvider.EPGResponse += (sender, e) => {
+			epg = new EPGProvider(this);
+			epg.EPGResponse += (sender, e) => {
 				var evArgs = new BackendHubResponseEventArgs();
 				evArgs.Response = e.Response;
 				evArgs.Context = e.Context;
@@ -75,7 +81,8 @@ namespace Netvision.Backend
 
 		public void HeartBeat()
 		{
-
+			playlist.HeartBeat();
+			epg.HeartBeat();
 		}
 	}
 }

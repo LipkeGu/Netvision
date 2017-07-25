@@ -5,12 +5,17 @@ using System.Net;
 using System.Threading.Tasks;
 using System.Web;
 
-using Netvision.Backend.Common;
-
 namespace Netvision.Backend.Network
 {
 	public class HTTPSocket
 	{
+		public enum RequestTarget
+		{
+			PlayList,
+			EPG,
+			WebSite
+		}
+
 		HttpListener listener;
 		public delegate void DataReceivedEventHandler(object sender, DataReceivedEventArgs e);
 		public event DataReceivedEventHandler DataReceived;
@@ -19,6 +24,36 @@ namespace Netvision.Backend.Network
 			public HttpListenerContext Context;
 
 			string ua;
+			string path;
+
+			BackendTarget target;
+
+			public BackendTarget Target
+			{
+				get
+				{
+					return target;
+				}
+
+				internal set
+				{
+					target = value;
+				}
+			}
+
+			public string Path
+			{
+				get
+				{
+					return path;
+				}
+
+				internal set
+				{
+					path = value;
+				}
+			}
+
 			public string UserAgent
 			{
 				get
@@ -52,6 +87,23 @@ namespace Netvision.Backend.Network
 			var evargs = new DataReceivedEventArgs();
 			evargs.Context = context;
 			evargs.UserAgent = context.Request.UserAgent;
+
+			if (path.EndsWith("/epg/") || path.Contains("/epg") ||
+					path.EndsWith("/playlist/") || path.Contains("/playlist"))
+			{
+				if (path.EndsWith("/epg/") || path.Contains("/epg"))
+				{
+					evargs.Target = BackendTarget.Epg;
+					evargs.Path = path;
+				}
+				else
+				{
+					evargs.Target = BackendTarget.Playlist;
+					evargs.Path = path;
+				}
+			}
+			else
+				evargs.Target = BackendTarget.WebSite;
 
 			DataReceived?.Invoke(this, evargs);
 

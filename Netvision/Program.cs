@@ -7,10 +7,11 @@ namespace Netvision
 		static void Main(string[] args)
 		{
 			var backend = new Backend.Backend();
-			var input = string.Empty;
+			//var input = string.Empty;
 
-			while (input != "!exit")
-				input = Console.ReadLine();
+			//while (input != "!exit")
+			//	input = Console.ReadLine();
+
 		}
 	}
 }

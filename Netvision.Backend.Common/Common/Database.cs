@@ -1,4 +1,4 @@
-﻿using Netvision.Backend.Common;
+﻿using Netvision.Backend;
 using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
@@ -11,7 +11,7 @@ namespace Netvision.Backend
 	{
 		SQLiteConnection sqlConn;
 
-		public SQLDatabase(string database = "database.db")
+		public SQLDatabase(string database)
 		{
 			var dataBase = Filesystem.Combine(Environment.CurrentDirectory, database);
 			sqlConn = new SQLiteConnection(string.Format("Data Source={0};Version=3;", dataBase));
@@ -20,53 +20,49 @@ namespace Netvision.Backend
 
 		public int Count(string table, string condition, string value)
 		{
+			var x = 0;
+
 			using (var cmd = new SQLiteCommand(string.Format("SELECT Count({0}) FROM {1} WHERE {0}='{2}'",
 				condition, table, value), sqlConn))
 			{
 				cmd.CommandType = CommandType.Text;
-				return Convert.ToInt32(cmd.ExecuteScalar());
+				x = Convert.ToInt32(cmd.ExecuteScalar());
 			}
+
+			return x;
 		}
 
 		public Dictionary<T, NameValueCollection> SQLQuery<T>(string sql)
 		{
+			Dictionary<T, NameValueCollection> x;
+
 			using (var cmd = new SQLiteCommand(sql, sqlConn))
 			{
 				cmd.CommandType = CommandType.Text;
 				cmd.ExecuteNonQuery();
 
-				var result = new Dictionary<T, NameValueCollection>();
+				x = new Dictionary<T, NameValueCollection>();
 				var reader = cmd.ExecuteReader();
 				var i = uint.MinValue;
 
 				while (reader.Read())
-					if (!result.ContainsKey((T)Convert.ChangeType(i, typeof(T))))
+					if (!x.ContainsKey((T)Convert.ChangeType(i, typeof(T))))
 					{
-						result.Add((T)Convert.ChangeType(i, typeof(T)), reader.GetValues());
+						x.Add((T)Convert.ChangeType(i, typeof(T)), reader.GetValues());
 						i++;
 					}
 
 				reader.Close();
-
-				return result;
 			}
+
+			return x;
 		}
 
-		public bool SQLInsert(string sql)
+		public void SQLInsert(string sql)
 		{
 			using (var cmd = new SQLiteCommand(sql, sqlConn))
 			{
-				try
-				{
-					// Existiert der Eintrag schon?
-					cmd.ExecuteNonQuery();
-					return true;
-				}
-				catch (SQLiteException ex)
-				{
-					Console.WriteLine(ex);
-					return false;
-				}
+				cmd.ExecuteNonQuery();
 			}
 		}
 
@@ -79,6 +75,7 @@ namespace Netvision.Backend
 				cmd.ExecuteNonQuery();
 
 				var reader = cmd.ExecuteReader();
+
 				while (reader.Read())
 					result = string.Format("{0}", reader[key]);
 

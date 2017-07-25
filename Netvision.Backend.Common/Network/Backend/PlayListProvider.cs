@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.Linq;
 using System.Net;
 using System.IO;
+using System.Text;
 
 namespace Netvision.Backend
 {
@@ -18,12 +20,12 @@ namespace Netvision.Backend
 
 		public PlayListProvider(BackendHub backend)
 		{
-			ImportPlayList();
 			backend.PlayListRequest += (sender, e) =>
 			{
 				var evArgs = new PlayListResponseEventArgs();
-				using (var db = new SQLDatabase("playlist.db"))
-					evArgs.Response = GeneratePlayList(db);
+
+				using (var fs = new Filesystem(Directory.GetCurrentDirectory()))
+					evArgs.Response = fs.ReadText("playlist.m3u8", Encoding.UTF8).Result;
 
 				e.Context.Response.ContentType = "application/x-mpegURL";
 				e.Context.Response.Headers.Add("Content-Disposition",
@@ -37,161 +39,42 @@ namespace Netvision.Backend
 			};
 		}
 
-		string GeneratePlayList(SQLDatabase db, bool heartbeat = false)
+		public static Dictionary<T, NameValueCollection> GetServerss<T>(ref SQLDatabase db, string id)
 		{
-			var result = db.SQLQuery<ulong>("SELECT * FROM channels");
+			return db.SQLQuery<T>(string.Format("SELECT * FROM servers WHERE channel='{0}'", id));
+		}
+
+		public static Dictionary<T, NameValueCollection> GetChannels<T>(ref SQLDatabase db)
+		{
+			return db.SQLQuery<T>("SELECT * from channels");
+		}
+
+		public static void GeneratePlayList(SQLDatabase db, bool heartbeat = false)
+		{
+			var channels = GetChannels<uint>(ref db);
 			var playlist = "#EXTM3U\r\n";
 			var server = string.Empty;
-
-			for (var i = ulong.MinValue; i < (ulong)result.Count; i++)
+			Console.WriteLine("Generating Playlist");
+			for (var i = uint.MinValue; i < channels.Count; i++)
 			{
-				server = GetURLForChannel(db, result[i]["id"]);
+				server = GetURLForChannel(ref db, channels[i]["id"]);
 				if (string.IsNullOrEmpty(server))
 					continue;
 
-				playlist += string.Format("#EXTINF:-1 tvg-id=\"{0}\",{1}\r\n", result[i]["epgid"], result[i]["name"]);
+				var logo = ChannelProvider.GetLogoByID(ref db, channels[i]["logo"]);
+				playlist += string.Format("#EXTINF:-1 tvg-name=\"{2}\" tvg-id=\"{0}\" tvg-logo=\"{1}\",{2}\r\n",
+					ChannelProvider.GetEPGIDrByID(ref db, channels[i]["epgid"]),
+					logo, ChannelProvider.GetNameByID(ref db, channels[i]["name"]));
+
 				playlist += string.Format("{0}\r\n", server);
-
-				Console.WriteLine("Channel added: {0}", result[i]["name"]);
 			}
 
-			Console.WriteLine("PlayList created!");
-			return playlist;
-		}
-
-		void ImportPlayList()
-		{
-			var filename = "channels.m3u8";
-			using (var db = new SQLDatabase("playlist.db"))
+			using (var fstream = File.CreateText("playlist.m3u8"))
 			{
-				using (var reader = new StreamReader(filename))
-				{
-					var line = string.Empty;
-					var channel = string.Empty;
-					var chanid = string.Empty;
-					var type = 0;
-					var status = 0;
-					var url = string.Empty;
-
-					while (!reader.EndOfStream)
-					{
-						line = reader.ReadLine();
-
-						if (!string.IsNullOrEmpty(line) && line.Length > 10)
-						{
-							if (line.StartsWith("#EXTINF:-1"))
-							{
-								line = line.Split(',')[1].Trim();
-
-								if (line.Contains("|"))
-									line = line.Split('|')[1].Trim();
-
-								if (line.Contains(":"))
-									line = line.Split(':')[1].Trim();
-
-								if (line.EndsWith("HD"))
-									line = line.Substring(0, line.Length - 2).Trim();
-
-								if (line.EndsWith(" uuu"))
-									line = line.Replace(" uuu", string.Empty).Trim();
-
-								line = line.Replace("&nbsp;", string.Empty);
-								line = line.Replace("&#135;", string.Empty);
-
-								line = line.Replace("Das Erste", "ARD");
-								line = line.Replace("Kabel Eins", "Kabel 1");
-								line = line.Replace("Pro Sieben", "Pro 7");
-								line = line.Replace("Prosieben", "Pro 7");
-
-								line = line.Replace("RTL Television", "RTL");
-								line = line.Replace("SUPER RTL", "Super RTL");
-								line = line.Replace("SAT 1", "Sat 1");
-								line = line.Replace("SAT1", "Sat 1");
-								line = line.Replace("&amp;", "&");
-								line = line.Replace("n-tvv", "NTV");
-								line = line.Replace("n-tv", "NTV");
-								line = line.Replace("N-TV", "NTV");
-								line = line.Replace("N24", "N24");
-								line = line.Replace("N-24", "N24");
-								line = line.Replace("n24", "N24");
-								line = line.Replace("n-24", "N24");
-
-
-								channel = line;
-							}
-							else
-							{
-								if (line.StartsWith("http://") && !string.IsNullOrEmpty(channel))
-								{
-									url = line;
-
-									var request = (HttpWebRequest)WebRequest.Create(url);
-									var response = (HttpWebResponse)null;
-
-									try
-									{
-										response = (HttpWebResponse)request.GetResponse();
-										switch (response.StatusCode)
-										{
-											case HttpStatusCode.OK:
-												switch (response.ContentType)
-												{
-													case "application/x-mpegurl":
-													case "application/vnd.apple.mpegurl":
-														status = 1;
-														type = 0;
-														break;
-													case "video/mp2t":
-														status = 1;
-														type = 1;
-														break;
-													default:
-														status = 0;
-														break;
-												}
-												break;
-											default:
-												status = 0;
-												break;
-										}
-									}
-									catch (Exception)
-									{
-										status = 0;
-									}
-
-									response?.Close();
-
-									if (line.StartsWith("rtmp://"))
-									{
-										url = line;
-										status = 1;
-										type = 0;
-									}
-
-									/*
-									if (db.Count("channels", "name", channel) == 0)
-									{
-										db.SQLInsert(string.Format("INSERT INTO channels (name) VALUES('{0}')", channel));
-									}
-									*/
-
-									if (status != 0)
-									{
-										if (db.Count("channels", "name", channel) != 0)
-										{
-											chanid = db.SQLQuery(string.Format("SELECT id FROM channels WHERE name='{0}'", channel), "id");
-											db.SQLInsert(string.Format("INSERT INTO servers (url, channel, type) VALUES('{0}','{1}','{2}')", url, chanid, type));
-										}
-										else
-											Console.WriteLine("Ignoring WORKING URL ({0}) for channel: {1}", url, channel);
-									}
-								}
-							}
-						}
-					}
-				}
+				fstream.Write(playlist);
 			}
+
+			Console.WriteLine("Done!");
 		}
 
 		bool TestChannelUrl(string url)
@@ -199,38 +82,48 @@ namespace Netvision.Backend
 			if (string.IsNullOrEmpty(url))
 				return false;
 
+			if (url.StartsWith("rtmp"))
+				return true;
+
 			var result = false;
-			var req = (HttpWebRequest)WebRequest.Create(url);
-			using (var res = (HttpWebResponse)req.GetResponse())
+			try
 			{
-				
-				switch (res.StatusCode)
+				var req = (HttpWebRequest)WebRequest.Create(url);
+				using (var res = (HttpWebResponse)req.GetResponse())
 				{
-					case HttpStatusCode.OK:
-						result = true;
-						break;
-					case HttpStatusCode.Forbidden:
-					case HttpStatusCode.NotFound:
-					default:
-						result = false;
-						break;
+
+					switch (res.StatusCode)
+					{
+						case HttpStatusCode.OK:
+							result = true;
+							break;
+						case HttpStatusCode.Forbidden:
+						case HttpStatusCode.NotFound:
+						default:
+							result = false;
+							break;
+					}
 				}
 			}
+			catch (Exception ex)
+			{
+				Console.WriteLine(ex.Message);
+				return false;
+			}
+
 
 			return result;
 		}
 
-		string GetURLForChannel(SQLDatabase db, string id, bool heartbeat = false)
+		static string GetURLForChannel(ref SQLDatabase db, string id, bool heartbeat = false)
 		{
-			var urls = db.SQLQuery<ulong>(string.Format("SELECT * FROM servers WHERE channel='{0}'", id));
 			var list = new List<string>();
-			
+			var urls = GetServerss<ulong>(ref db, id);
+
 			for (var i = ulong.MinValue; i < (ulong)urls.Count; i++)
 			{
-				list.Add((int.Parse(urls[i]["type"]) != 1) ? urls[i]["url"] :
-					string.Format("plugin://plugin.video.f4mTester/?url={0}&amp;streamtype=TSDOWNLOADER&amp;maxbitrate=0&amp;Buffer=20971520",
-					urls[i]["url"])
-					);
+				if (!string.IsNullOrEmpty(urls[i]["url"]))
+					list.Add(urls[i]["url"]);
 			}
 
 			return list.ElementAtOrDefault(new Random().Next(list.Count));
@@ -248,15 +141,18 @@ namespace Netvision.Backend
 
 				if (updatePlayList)
 				{
-					using (var db = new SQLDatabase("playlist.db"))
+					using (var db = new SQLDatabase("channels.db"))
 					{
 						var urls = db.SQLQuery<ulong>("SELECT * FROM servers");
 						for (var i = ulong.MinValue; i < (ulong)urls.Count; i++)
 						{
+							Console.WriteLine("Testting URL: {0}", urls[i]["url"]);
 							if (!TestChannelUrl(urls[i]["url"]))
 								db.SQLInsert(string.Format("DELETE FROM servers WHERE url='{0}'",
 									urls[i]["url"]));
 						}
+
+						GeneratePlayList(db, true);
 					}
 				}
 			}
