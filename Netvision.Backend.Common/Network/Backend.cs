@@ -28,6 +28,7 @@ namespace Netvision.Backend.Network
 
 			public BackendAction Action;
 			public BackendTarget Target;
+			public Dictionary<string, string> Parameters;
 		}
 		
 		public void HeartBeat()
@@ -45,11 +46,13 @@ namespace Netvision.Backend.Network
 				evArgs.Context = e.Context;
 				evArgs.Action = e.Action;
 				evArgs.Target = e.Target;
+				evArgs.Parameters = e.Parameters;
 
 				BackendHubRequest?.Invoke(this, evArgs);
 			};
 
-			backendhub.BackendHubResponse += (sender, e) => {
+			backendhub.BackendHubResponse += (sender, e) =>
+            {
 				var evArgs = new BackendResponseEventArgs();
 				evArgs.Context = e.Context;
 				evArgs.Response = e.Response;

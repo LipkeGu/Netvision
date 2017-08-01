@@ -3,134 +3,211 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Net;
-
 using System.Threading.Tasks;
 using System.Xml;
+using System.IO.Compression;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using System.IO;
+
+using Netvision.Backend.Providers;
 
 namespace Netvision.Backend
 {
-	public class EPGProvider
-	{
-		public delegate void EPGResponseEventHandler(object sender, EPGResponseEventArgs e);
-		public event EPGResponseEventHandler EPGResponse;
-		public class EPGResponseEventArgs : EventArgs
-		{
-			public string Response;
-			public HttpListenerContext Context;
-		}
+    public class EPGProvider
+    {
+        public delegate void EPGResponseEventHandler(object sender,EPGResponseEventArgs e);
 
-		SQLDatabase db;
+        public event EPGResponseEventHandler EPGResponse;
 
-		public EPGProvider(BackendHub backend)
-		{
-			db = new SQLDatabase("channels.db");
-			backend.EPGRequest += (sender, e) =>
-			{
-				DownloadEPG("1");
-			};
-		}
+        public class EPGResponseEventArgs : EventArgs
+        {
+            public string Response;
+            public HttpListenerContext Context;
+        }
 
-		void DownloadEPG(string provider)
-		{
-			var epg_url = GetEPGProviderURL(provider);
-			if (string.IsNullOrEmpty(epg_url))
-			{
-				Console.WriteLine("EPG download failed! Error: got empty URL!");
+        SQLDatabase db;
+        bool updateEPG = false;
 
-				return;
-			}
+        public EPGProvider(BackendHub backend)
+        {
+            db = new SQLDatabase("channels.db");
+            backend.EPGRequest += (sender, e) =>
+            {
+                var evArgs = new EPGResponseEventArgs();
+                evArgs.Context = e.Context;
 
-			using (var epg_wc = new WebClient())
-			{
-				epg_wc.Encoding = Encoding.UTF8;
+                EPGResponse?.Invoke(this, evArgs);
+            };
+        }
 
-				epg_wc.DownloadStringCompleted += (sender, e) =>
-				{
-					Console.WriteLine("Download completed!");
+        /// <summary>
+        /// Downloads the EPG metadata (periodes).
+        /// </summary>
+        /// <param name="provider">Provider.</param>
+        /// <param name="epgid">Epgid.</param>
+        void DownloadEPGMetaData(int provider)
+        {
+            var epg_url = GetEPGProviderURL(1);
 
-					if (e.Result.StartsWith("{"))
-					{
-						var ValueList = JsonConvert.DeserializeObject<Dictionary<string, object>>(e.Result);
-						foreach (var entry in ValueList)
-						{
-							var epg_entries = JsonConvert.DeserializeObject<List<Vodafone_epg>>(string.Format("{0}", entry.Value));
-						}
-					}
+            using (var wc = new WebClient())
+            {
+                wc.DownloadStringCompleted += (sender, e) =>
+                {
+                    var json_input = e.Result;
+                   
+                    json_input = json_input.Replace("\"start_date_ger\"", "\"sdate_parsed\"");
+                    json_input = json_input.Replace("\"end_date_ger\"", "\"eDate_parsed\"");
+                    json_input = json_input.Replace("\"startDate\"", "\"sdate_parsed\"");
+                    json_input = json_input.Replace("\"endDate\"", "\"eDate_parsed\"");
+                    json_input = json_input.Replace("\"length\"", "\"duration\"");
 
-					return;
-				};
+                    json_input = json_input.Replace("\"end_time\"", "\"eTime_parsed\"");
+                    json_input = json_input.Replace("\"endTime\"", "\"eTime_parsed\"");
 
-				epg_url = epg_url.Replace("[#EPGID#]", "");
-				epg_url = epg_url.Replace("[#YEAR#]", "");
-				epg_url = epg_url.Replace("[#SDAY#]", "");
-				epg_url = epg_url.Replace("[#EDAY#]", "");
-				epg_url = epg_url.Replace("[#EPGID#]", "");
-				epg_url = epg_url.Replace("[#EPGID#]", "");
-				epg_url = epg_url.Replace("[#EPGID#]", "");
-				epg_url = epg_url.Replace("[#EPGID#]", "");
+                    json_input = json_input.Replace("\"start_time\"", "\"sTime_parsed\"");
+                    json_input = json_input.Replace("\"startTime\"", "\"sTime_parsed\"");
 
-				Console.WriteLine("Downloading EPG from: {0}", epg_url);
-				epg_wc.DownloadStringAsync(new Uri(epg_url));
-			}
-		}
+                    GenerateEPG(JsonConvert.DeserializeObject<Dictionary<string, List<epg>>>(json_input));
 
-		string GetEPGProviderURL(string id)
-		{
-			var url = string.Empty;
-			if (db.Count("epg_lists", "provider", id) != 0)
-			{
-				var urls = db.SQLQuery<ulong>(string.Format("SELECT url FROM epg_lists WHERE provider='{0}'", id));
-				url = urls[(ulong)new Random().Next(0, urls.Count - 1)]["url"];
-			}
+                };
 
-			return url;
-		}
+                wc.DownloadStringAsync(new Uri(epg_url));
+            }
+        }
 
-		string GetEPGSource(string provider)
-		{
-			return db.SQLQuery(string.Format("SELECT url FROM epg_lists WHERE provider='{0}'", provider), "url");
-		}
+        string SelectChannels()
+        {
+            return string.Join<string>(",", (from c in ChannelProvider.Channels.Members.Values
+                                                         where c.Servers.Count != 0
+                                                         where c.ID != 0
+                                                         select c.ID.AsString()).ToList<string>());
+        }
 
-		XmlDocument GenerateEPG()
-		{
-			var xml = new XmlDocument();
-			var root = xml.CreateElement("tv");
+        string GetEPGProviderURL(int provider)
+        {
+            var url = string.Empty;
+            if (db.Count("epg_lists", "provider", provider.AsString()) != 0)
+            {
+                var urls = db.SQLQuery<ulong>(string.Format("SELECT url FROM epg_lists WHERE provider='{0}'", provider.AsString()));
+                var days = int.Parse(db.SQLQuery(string.Format("SELECT days FROM epg_lists WHERE provider='{0}'", provider.AsString()), "days"));
 
-			root.SetAttribute("generator-info-name", "Rytec");
-			root.SetAttribute("generator-info-url", "http://forums.openpli.org");
+                var epg_timespan = DateTime.Today.AddDays(-1);
+                url = urls[(ulong)new Random().Next(0, urls.Count - 1)]["url"];
+                url = url.Replace("[#EPGID#]", SelectChannels());
 
-			/*
-			var channels = db.SQLQuery("SELECT * FROM channels");
-			if (channels.Count != 0)
-			{
-				for (var i = ulong.MinValue; i < (ulong)channels.Count; i++)
-				{
-					if (channels[i]["epgid"] == "noepg.epg")
-						continue;
+                url = url.Replace("[#SDAY#]", Functions.formatNumberValue(epg_timespan.Day));
+                url = url.Replace("[#SMONTH#]", Functions.formatNumberValue(epg_timespan.Month));
+                url = url.Replace("[#YEAR#]", Functions.formatNumberValue(epg_timespan.Year));
+                url = url.Replace("[#EDAY#]", Functions.formatNumberValue(epg_timespan.AddDays(days).Day));
+                url = url.Replace("[#EMONTH#]", Functions.formatNumberValue(epg_timespan.AddDays(days).Month));
+            }
 
-					var channel = xml.CreateElement("channel");
-					channel.SetAttribute("id", channels[i]["epgid"]);
+            Console.WriteLine(url);
+            return url;
+        }
 
-					var dn = xml.CreateElement("display-name");
-					dn.SetAttribute("lang", "de");
-					dn.InnerText = channels[i]["name"];
-					channel.AppendChild(dn);
+        void GenerateEPG(Dictionary<string, List<epg>> epgdata)
+        {
+            var xml = new XmlDocument();
+            var root = xml.CreateElement("tv");
 
-					root.AppendChild(channel);
-				}
-			}
+            root.SetAttribute("generator-info-name", "Generated by Netvision IPTV Backend");
+            root.SetAttribute("generator-info-url", "");
 
-			xml.AppendChild(root);
-			xml.InsertBefore(xml.CreateXmlDeclaration("1.0", "UTF-8", null), root);
-			*/
-			return xml;
-		}
+            if (ChannelProvider.Channels.Count != 0)
+            {
+                var channels = (from c in ChannelProvider.Channels.Members.Values
+                                            where c.Servers.Count != 0
+                                            where c.ID != 0
+                                            select c).ToList<Channel>();
+               
+                for (var i = 0; i < channels.Count; i++)
+                {
+                    var cnode = xml.CreateElement("channel");
+                    cnode.SetAttribute("id", channels[i].ID.AsString());
 
-		public void HeartBeat()
-		{
-		}
-	}
+                    var dn = xml.CreateElement("display-name");
+                    dn.SetAttribute("lang", "de");
+                    dn.InnerText = channels[i].Name;
+                    cnode.AppendChild(dn);
+
+                    root.AppendChild(cnode);
+                }
+
+                foreach (var item in epgdata)
+                {
+                    for (var i = 0; i < item.Value.Count; i++)
+                    {
+                        var programm = xml.CreateElement("programme");
+                        programm.SetAttribute("start", item.Value[i].Start);
+                        programm.SetAttribute("stop", item.Value[i].Stop);
+                        programm.SetAttribute("channel", item.Key);
+
+                        var title = xml.CreateElement("title");
+                        title.SetAttribute("lang", "de");
+                        title.InnerText = item.Value[i].Title;
+                        programm.AppendChild(title);
+
+                        if (!string.IsNullOrEmpty(item.Value[i].Description))
+                        {
+                            var desc = xml.CreateElement("desc");
+                            desc.SetAttribute("lang", "de");
+                            desc.InnerText = item.Value[i].Description;
+                            programm.AppendChild(desc);
+                        }
+
+                        if (!string.IsNullOrEmpty(item.Value[i].SubTitle))
+                        {
+                            var ss = xml.CreateElement("sub-title");
+                            ss.SetAttribute("lang", "de");
+                            ss.InnerText = item.Value[i].SubTitle;
+                            programm.AppendChild(ss);
+                        }
+
+                        root.AppendChild(programm);
+                    }
+                }
+
+                xml.AppendChild(root);
+                xml.InsertBefore(xml.CreateXmlDeclaration("1.0", "UTF-8", null), root);
+			
+                xml.Save("epgdata.xml");
+
+                if (File.Exists("epgdata.xml.gz"))
+                    File.Delete("epgdata.xml.gz");
+
+                Filesystem.GZipCompress("epgdata.xml");
+
+                if (File.Exists("epgdata.xml"))
+                    File.Delete("epgdata.xml");
+                    
+                Console.WriteLine("EPG Data saved as; epgdata.xml.gz");
+            }
+        }
+
+        void run_epgUpdate()
+        {
+            
+            DownloadEPGMetaData(1);
+        }
+
+
+        public void HeartBeat()
+        {
+            if (!File.Exists("epgdata.xml.gz"))
+                run_epgUpdate();
+            else
+            {    
+                if (DateTime.Now.Hour == 2)
+                {
+                    updateEPG = DateTime.Now.Minute < 3 ? true : false;
+                
+                    if (updateEPG)
+                    {
+                        run_epgUpdate();
+                    }
+                }
+            }
+        }
+    }
 }
