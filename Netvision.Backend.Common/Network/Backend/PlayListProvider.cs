@@ -100,7 +100,7 @@ namespace Netvision.Backend
                     var epgid = channels[i].ID;
                     var provider = ChannelProvider.GetProviderNameByID(db, channels[i].Provider);
 
-                    playlist += string.Format("#EXTINF:-1 tvg-name=\"{2}\" tvg-group=\"{3}\" tvg-id=\"{0}\" tvg-logo=\"{1}\",{2}\r\n",
+                    playlist += string.Format("#EXTINF:-1 tvg-name=\"{2}\" group-title=\"{3}\" tvg-id=\"{0}\" tvg-logo=\"{1}\",{2}\r\n",
                         epgid == 0 ? string.Empty : epgid.AsString(), 
                         !string.IsNullOrEmpty(logo) ? string.Concat(logo_url, logo) : string.Empty,
                         name, provider);

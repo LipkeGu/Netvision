@@ -13,10 +13,24 @@ namespace Netvision.Backend.Providers
 
         int provider;
         int type;
+        int chanNr;
 
         public Channel()
         {
             servers = new List<Server>();    
+        }
+
+        public int ChanNo
+        {
+            get
+            {
+                return chanNr;
+            }
+
+            set
+            {
+                chanNr = value;
+            }
         }
 
         public int Provider

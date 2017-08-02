@@ -29,6 +29,8 @@ namespace Netvision.Backend
                     channel.Provider = int.Parse(chs[i]["provider"]);
                     channel.ID = int.Parse(chs[i]["epgid"]);
 
+                    channel.ChanNo = int.Parse(chs[i]["channo"]);
+
                     var servers = db.SQLQuery<ulong>(string.Format("SELECT * from servers channel='{0}}'", chs[i]["id"]));
                     for (var i2 = ulong.MinValue; i2 < (ulong)chs.Count; i++)
                     {
@@ -153,7 +155,7 @@ namespace Netvision.Backend
                             db.Count("channels", "logo", ch_logoid) == 0 &&
                             db.Count("channels", "epgid", ch_epgid) == 0)
                         {
-                            var chan_id = InsertChannel(ch_nameid, ch_logoid, ch_epgid, item.Provider, item.Type);
+                            var chan_id = InsertChannel(ch_nameid, ch_logoid, ch_epgid, item.Provider, item.Type, item.ChanNo);
 
                             for (var i = 0; i < item.Servers.Count; i++)
                             {
@@ -175,25 +177,27 @@ namespace Netvision.Backend
                 input = input.Replace("\"ishd\"", "\"hd\"");
                 input = input.Replace("\"lname\"", "\"Name\"");
                 input = input.Replace("\"tvtvid\"", "id");
+                input = input.Replace("\"channelNumber\"", "\"ChanNo\"");
 
-                var ValueList = JsonConvert.DeserializeObject<Dictionary<string, object>>(input);
+                var ChannelList = JsonConvert.DeserializeObject<Dictionary<string, List<Channel>>>(input);
 				
-                foreach (var entry in ValueList.Values)
+                foreach (var entry in ChannelList)
                 {
-                    var channel_entries = JsonConvert.DeserializeObject<List<Channel>>(string.Format("{0}", entry));
-
-                    for (var i = 0; i < channel_entries.Count; i++)
+                    for (var i = 0; i < entry.Value.Count; i++)
                     {
-                        var chan_name = channel_entries[i].Name.FirstCharUpper();
+                        var chan_name = entry.Value[i].Name.FirstCharUpper();
                         if (!Channels.Exist(chan_name))
                         {
                             var channel = new Channel();
                             channel.Name = chan_name;
-                            channel.Logo = channel_entries[i].Logo;
-                            channel.ID = channel_entries[i].ID;
+                            channel.Logo = entry.Value[i].Logo;
+                            channel.ID = entry.Value[i].ID;
                             channel.Provider = provider;
+                            channel.ChanNo = entry.Value[i].ChanNo;
 
-                            Console.WriteLine("Adding Channel: \"{0}\" (EPG ID: {1})", channel.Name, channel.ID);
+                            Console.WriteLine("Adding Channel: \"{0}\" (EPG ID: {1}; Channel Nr: {2})",
+                                channel.Name, channel.ID, channel.ChanNo);
+                            
                             Channels.Add(channel.Name, channel);
                         }
                     }
@@ -291,10 +295,12 @@ namespace Netvision.Backend
                                     channel.Provider = provider;
                                     channel.Type = type;
                                     channel.Servers.Add(new Server(url, type));
+                                    channel.ChanNo = 0;
 
                                     if (!Channels.Exist(name))
                                     {
-                                        Console.WriteLine("Adding Channel: \"{0}\" (EPG ID: {1})", channel.Name, channel.ID);
+                                        Console.WriteLine("Adding Channel: \"{0}\" (EPG ID: {1}; Channel Nr: {2})",
+                                            channel.Name, channel.ID, channel.ChanNo);
 
                                         Channels.Add(channel.Name, channel);
                                     }
@@ -310,10 +316,10 @@ namespace Netvision.Backend
             Console.WriteLine("Importing complete!");
         }
 
-        int InsertChannel(int name_id, int logo_id, int epg_id, int provider_id, int type)
+        int InsertChannel(int name_id, int logo_id, int epg_id, int provider_id, int type, int channo)
         {
-            db.SQLInsert(string.Format("INSERT INTO channels (name, logo, provider, epgid, type) VALUES('{0}','{1}','{2}','{3}','{4}')",
-                    name_id, logo_id, provider_id, epg_id, type));
+            db.SQLInsert(string.Format("INSERT INTO channels (name, logo, provider, epgid, type, channo) VALUES('{0}','{1}','{2}','{3}','{4}','{5}')",
+                    name_id, logo_id, provider_id, epg_id, type, channo));
 
             return int.Parse(db.SQLQuery(string.Format("SELECT id FROM channels WHERE name='{0}'", name_id), "id"));
         }
