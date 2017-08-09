@@ -1,99 +1,173 @@
-﻿using System;
+﻿using Netvision.Backend.Provider;
+using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Net;
-using System.Threading.Tasks;
 
 namespace Netvision.Backend
 {
-    public class BackendHub
-    {
-        public delegate void BackendHubResponseEventHandler(object sender,BackendHubResponseEventArgs e);
+	public class BackendHub
+	{
+		public delegate void BackendHubResponseEventHandler(object sender, BackendHubResponseEventArgs e);
+		public event BackendHubResponseEventHandler BackendHubResponse;
+		public class BackendHubResponseEventArgs : EventArgs
+		{
+			public HttpListenerContext Context;
+			public string Response;
+			public BackendTarget Target;
+		}
 
-        public event BackendHubResponseEventHandler BackendHubResponse;
+		public delegate void ProviderRequestEventHandler(object sender, ProviderRequestEventArgs e);
+		public event ProviderRequestEventHandler ChannelRequest;
+		public event ProviderRequestEventHandler EPGRequest;
+		public event ProviderRequestEventHandler PlayListRequest;
 
-        public class BackendHubResponseEventArgs : EventArgs
-        {
-            public string Response;
-            public HttpListenerContext Context;
-        }
+		public class ProviderRequestEventArgs : EventArgs
+		{
+			public BackendAction Action;
+			public HttpListenerContext Context;
+			public Dictionary<string, string> Parameters;
+			public int Provider;
+			public string Response;
+		}
 
-        public delegate void PlayListRequestEventHandler(object sender,PlayListRequestEventArgs e);
+		PlayListProvider playlist;
+		EPGProvider epg;
+		ChannelProvider channel;
+		
+		public BackendHub(ref SQLDatabase db, Network.Backend backend)
+		{
+			channel = new ChannelProvider(this);
 
-        public event PlayListRequestEventHandler PlayListRequest;
-
-        public class PlayListRequestEventArgs : EventArgs
-        {
-            public HttpListenerContext Context;
-            public Dictionary<string, string> Parameters;
-        }
-
-        public delegate void EPGRequestEventHandler(object sender,EPGRequestEventArgs e);
-
-        public event EPGRequestEventHandler EPGRequest;
-
-        public class EPGRequestEventArgs : EventArgs
-        {
-            public HttpListenerContext Context;
-        }
-
-        PlayListProvider playlist;
-        EPGProvider epg;
-        ChannelProvider channel;
-
-        public BackendHub(Network.Backend backend)
-        {
-            channel = new ChannelProvider(this);
+			MakeRequest(BackendTarget.Channel, BackendAction.Download,
+				null, new Dictionary<string, string>(), string.Empty, 1);
 			
-            playlist = new PlayListProvider(this);
-            playlist.PlayListResponse += (sender, e) =>
-            {
-                var evArgs = new BackendHubResponseEventArgs();
-                evArgs.Response = e.Response;
-                evArgs.Context = e.Context;
+			channel.ChannelProviderResponse += (sender, e) =>
+			{
+				var evArgs = new BackendHubResponseEventArgs();
+				evArgs.Response = e.Response;
+				evArgs.Context = e.context;
+				evArgs.Target = BackendTarget.Channel;
 
-                BackendHubResponse?.Invoke(this, evArgs);
-            };
+				switch (e.Action)
+				{
+					case BackendAction.Create:
+						MakeRequest(BackendTarget.Channel, BackendAction.Import, e.context, e.Parameters, e.Response, e.Provider);
+						break;
+					case BackendAction.Import:
+						MakeRequest(BackendTarget.Epg, BackendAction.Download, e.context, e.Parameters, e.Response, e.Provider);
+						break;
+					case BackendAction.Remove:
+						MakeRequest(BackendTarget.Epg, BackendAction.Remove, e.context, e.Parameters, e.Response, e.Provider);
+						break;
+					case BackendAction.Update:
+						MakeRequest(BackendTarget.Epg, e.Action, e.context, e.Parameters, e.Response, e.Provider);
+						break;
+					case BackendAction.Download:
+						MakeRequest(BackendTarget.Playlist, BackendAction.Download, e.context, e.Parameters, e.Response, e.Provider);
+						break;
+					default:
+						break;
+				}
+			};
+			
+			playlist = new PlayListProvider(ref db, this);
+			playlist.PlayListProviderResponse += (sender, e) =>
+			{
+				var evArgs = new BackendHubResponseEventArgs();
+				evArgs.Response = e.Response;
+				evArgs.Context = e.Context;
+				evArgs.Target = BackendTarget.Playlist;
 
-            epg = new EPGProvider(this);
-            epg.EPGResponse += (sender, e) =>
-            {
-                var evArgs = new BackendHubResponseEventArgs();
-                evArgs.Response = e.Response;
-                evArgs.Context = e.Context;
+				switch (e.Action)
+				{
+					case BackendAction.Create:
+						if (e.Context != null)
+							BackendHubResponse?.Invoke(this, evArgs);
+						break;
+					case BackendAction.Download:
+						MakeRequest(BackendTarget.Channel, BackendAction.Create, e.Context, e.Parameters, e.Response, e.Provider);
+						break;
+					case BackendAction.Import:
+						MakeRequest(BackendTarget.Channel, BackendAction.Import, e.Context, e.Parameters, e.Response, e.Provider);
+						break;
+					case BackendAction.Remove:
+						BackendHubResponse?.Invoke(this, evArgs);
+						break;
+					case BackendAction.Update:
+						BackendHubResponse?.Invoke(this, evArgs);
+						break;
+					default:
+						break;
+				}
+			};
 
-                BackendHubResponse?.Invoke(this, evArgs);
-            };
+			epg = new EPGProvider(ref db, this);
+			epg.EPGProviderResponse += (sender, e) =>
+			{
+				var evArgs = new BackendHubResponseEventArgs();
+				evArgs.Response = e.Response;
+				evArgs.Context = e.Context;
+				evArgs.Target = BackendTarget.Epg;
 
-            backend.BackendHubRequest += (sender, e) =>
-            {
-                switch (e.Target)
-                {
-                    case BackendTarget.Playlist:
-                        var PLevArgs = new PlayListRequestEventArgs();
-                        PLevArgs.Context = e.Context;
-                        PLevArgs.Parameters = e.Parameters;
+				switch (e.Action)
+				{
+					case BackendAction.Create:
+						MakeRequest(BackendTarget.Playlist, BackendAction.Create, e.Context, e.Parameters, e.Response, e.Provider);
+						break;
+					case BackendAction.Import:
+						MakeRequest(BackendTarget.Playlist, BackendAction.Update, e.Context, e.Parameters, e.Response, e.Provider);
+						break;
+					case BackendAction.Remove:
+						MakeRequest(BackendTarget.Playlist, BackendAction.Remove, e.Context, e.Parameters, e.Response, e.Provider);
+						break;
+					case BackendAction.Update:
+						MakeRequest(BackendTarget.Playlist, BackendAction.Update, e.Context, e.Parameters, e.Response, e.Provider);
+						break;
+					case BackendAction.Download:
+						MakeRequest(BackendTarget.Epg, BackendAction.Create, e.Context, e.Parameters, e.Response, e.Provider);
+						break;
+					default:
+						break;
+				}
+			};
 
-                        PlayListRequest?.Invoke(this, PLevArgs);
-                        break;
-                    case BackendTarget.Epg:
-                        var evArgs = new EPGRequestEventArgs();
-                        evArgs.Context = e.Context;
+			backend.BackendHubRequest += (sender, e) =>
+			{
+				MakeRequest(e.Target, e.Action, e.Context, e.Parameters, e.Response, 1);
+			};
+		}
 
-                        EPGRequest?.Invoke(this, evArgs);
-                        break;
-                    default:
-                        break;
-                }
-            };
-        }
+		void MakeRequest(BackendTarget target, BackendAction action, HttpListenerContext context,
+			Dictionary<string,string> parameters, string response, int provider)
+		{
+			var evArgs = new ProviderRequestEventArgs();
+			evArgs.Context = context;
+			evArgs.Parameters = parameters;
+			evArgs.Action = action;
+			evArgs.Provider = provider;
 
-        public void HeartBeat()
-        {
-            channel.HeartBeat();
-            playlist.HeartBeat();
-            epg.HeartBeat();
-        }
-    }
+			switch (target)
+			{
+				case BackendTarget.Playlist:
+					evArgs.Response = response;
+					PlayListRequest?.Invoke(this, evArgs);
+					break;
+				case BackendTarget.Epg:
+					evArgs.Response = response;
+					EPGRequest?.Invoke(this, evArgs);
+					break;
+				case BackendTarget.Channel:
+					evArgs.Response = response;
+					ChannelRequest?.Invoke(this, evArgs);
+					break;
+				case BackendTarget.WebSite:
+				case BackendTarget.Unknown:
+				default:
+					break;
+			}
+		}
+
+		public void HeartBeat() => MakeRequest(BackendTarget.Channel, BackendAction.Update, null,
+			new Dictionary<string, string>(), string.Empty, 1);
+	}
 }

@@ -1,103 +1,103 @@
-﻿using Netvision.Backend;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Data;
 using System.Data.SQLite;
+using System.Threading.Tasks;
 
 namespace Netvision.Backend
 {
-    public class SQLDatabase : IDisposable
-    {
-        SQLiteConnection sqlConn;
+	public class SQLDatabase : IDisposable
+	{
+		SQLiteConnection sqlConn;
 
-        public SQLDatabase(string database)
-        {
-            var dataBase = Filesystem.Combine(Environment.CurrentDirectory, database);
-            sqlConn = new SQLiteConnection(string.Format("Data Source={0};Version=3;", dataBase));
-            sqlConn.OpenAsync().ConfigureAwait(false);
-        }
+		public SQLDatabase(string database)
+		{
+			var dataBase = Filesystem.Combine(Environment.CurrentDirectory, database);
+			sqlConn = new SQLiteConnection(string.Format("Data Source={0};Version=3;", dataBase));
 
-        public int Count<T>(string table, string condition, T value)
-        {
-            var x = 0;
+			Open();
+		}
 
-            using (var cmd = new SQLiteCommand(string.Format("SELECT Count({0}) FROM {1} WHERE {0}='{2}'",
-                            condition, table, value), sqlConn))
-            {
-                cmd.CommandType = CommandType.Text;
-                x = Convert.ToInt32(cmd.ExecuteScalar());
-            }
+		async void Open() => await sqlConn.OpenAsync();
 
-            return x;
-        }
+		public async Task<int> Count<T>(string table, string condition, T value)
+		{
+			var x = 0;
 
-        public Dictionary<T, NameValueCollection> SQLQuery<T>(string sql)
-        {
-            Dictionary<T, NameValueCollection> x;
+			using (var cmd = new SQLiteCommand(string.Format("SELECT Count({0}) FROM {1} WHERE {0}=\"{2}\"",
+							condition, table, string.Format("{0}", value)), sqlConn))
+			{
+				cmd.CommandType = CommandType.Text;
+				x = Convert.ToInt32(await cmd.ExecuteScalarAsync());
+			}
 
-            using (var cmd = new SQLiteCommand(sql, sqlConn))
-            {
-                cmd.CommandType = CommandType.Text;
-                cmd.ExecuteNonQuery();
+			return x;
+		}
 
-                x = new Dictionary<T, NameValueCollection>();
-                var reader = cmd.ExecuteReader();
-                var i = uint.MinValue;
+		public async Task<Dictionary<T, NameValueCollection>> SQLQuery<T>(string sql)
+		{
+			var x = new Dictionary<T, NameValueCollection>();
+			using (var cmd = new SQLiteCommand(sql, sqlConn))
+			{
+				cmd.CommandType = CommandType.Text;
+				await cmd.ExecuteNonQueryAsync();
 
-                while (reader.Read())
-                    if (!x.ContainsKey((T)Convert.ChangeType(i, typeof(T))))
-                    {
-                        x.Add((T)Convert.ChangeType(i, typeof(T)), reader.GetValues());
-                        i++;
-                    }
+				var reader = cmd.ExecuteReader();
+				var i = 0;
 
-                reader.Close();
-            }
+				while (await reader.ReadAsync())
+					if (!x.ContainsKey((T)Convert.ChangeType(i, typeof(T))))
+					{
+						x.Add((T)Convert.ChangeType(i, typeof(T)), reader.GetValues());
+						i++;
+					}
 
-            return x;
-        }
+				reader.Close();
+			}
 
-        public void SQLInsert(string sql)
-        {
-            using (var cmd = new SQLiteCommand(sql, sqlConn))
-            {
-                cmd.ExecuteNonQuery();
-            }
-        }
+			return x;
+		}
 
-        public string SQLQuery(string sql, string key)
-        {
-            var result = string.Empty;
-            using (var cmd = new SQLiteCommand(sql, sqlConn))
-            {
-                cmd.CommandType = CommandType.Text;
-                cmd.ExecuteNonQuery();
+		public async void SQLInsert(string sql)
+		{
+			using (var cmd = new SQLiteCommand(sql, sqlConn))
+				await cmd.ExecuteNonQueryAsync();
+		}
 
-                var reader = cmd.ExecuteReader();
+		public async Task<string> SQLQuery(string sql, string key)
+		{
+			var result = string.Empty;
+			using (var cmd = new SQLiteCommand(sql, sqlConn))
+			{
+				cmd.CommandType = CommandType.Text;
+				await cmd.ExecuteNonQueryAsync();
 
-                while (reader.Read())
-                    result = string.Format("{0}", reader[key]);
+				var reader = await cmd.ExecuteReaderAsync();
 
-                reader.Close();
-            }
+				await reader.ReadAsync();
+				
+				result = string.Format("{0}", reader[key]);
 
-            return result;
-        }
+				reader.Close();
+			}
 
-        public void Close()
-        {
-            sqlConn.Close();
-        }
+			return result;
+		}
 
-        public void HeartBeat()
-        {
-            sqlConn.ReleaseMemory();
-        }
+		public void Close()
+		{
+			sqlConn.Close();
+		}
 
-        public void Dispose()
-        {
-            sqlConn.Dispose();
-        }
-    }
+		public void HeartBeat()
+		{
+			sqlConn.ReleaseMemory();
+		}
+
+		public void Dispose()
+		{
+			sqlConn.Dispose();
+		}
+	}
 }

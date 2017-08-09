@@ -1,113 +1,127 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace Netvision.Backend.Providers
+namespace Netvision.Backend.Provider
 {
-    public sealed class Channel
-    {
-        int id;
-        string name;
-        string logo;
+	public sealed class Channel
+	{
+		int db_chanid;
+		int id;
+		string name;
+		string logo;
 
-        List<Server> servers;
+		List<Server> servers;
 
-        int provider;
-        int type;
-        int chanNr;
+		int provider;
+		int type;
+		int chanNr;
 
-        public Channel()
-        {
-            servers = new List<Server>();    
-        }
+		public Channel()
+		{
+			servers = new List<Server>();
+			servers.Capacity = byte.MaxValue;
+		}
 
-        public int ChanNo
-        {
-            get
-            {
-                return chanNr;
-            }
+		public int ChanDBID
+		{
+			get
+			{
+				return db_chanid;
+			}
 
-            set
-            {
-                chanNr = value;
-            }
-        }
+			set
+			{
+				db_chanid = value;
+			}
+		}
 
-        public int Provider
-        {
-            get
-            {
+		public int ChanNo
+		{
+			get
+			{
+				return chanNr;
+			}
 
-                return provider;
-            }
+			set
+			{
+				chanNr = value;
+			}
+		}
 
-            set
-            {
-                provider = value;
-            } 
-        }
+		public int Provider
+		{
+			get
+			{
 
-        public string Name
-        {
-            get
-            {
+				return provider;
+			}
 
-                return name;
-            }
+			set
+			{
+				provider = value;
+			}
+		}
 
-            set
-            {
-                name = value.Trim();
-            }
-        }
+		public string Name
+		{
+			get
+			{
 
-        public int ID
-        {
-            get
-            {
+				return name;
+			}
 
-                return id;
-            }
+			set
+			{
+				name = value;
+			}
+		}
 
-            set
-            {
-                id = value;
-            }
-        }
+		public int ID
+		{
+			get
+			{
 
-        public List<Server> Servers
-        {
-            get
-            {
-                return servers;
-            }
-        }
+				return id;
+			}
 
-        public string Logo
-        {
-            get
-            {
-                return logo;
-            }
+			set
+			{
+				id = value;
+			}
+		}
 
-            set
-            {
-                logo = value;
-            }
-        }
+		public List<Server> Servers
+		{
+			get
+			{
+				return servers;
+			}
+		}
 
-        public int Type
-        {
-            get
-            {
-                return type;
-            }
+		public string Logo
+		{
+			get
+			{
+				return logo;
+			}
 
-            set
-            {
-                type = value;
-            }
-        }
-    }
+			set
+			{
+				logo = value;
+			}
+		}
+
+		public int Type
+		{
+			get
+			{
+				return type;
+			}
+
+			set
+			{
+				type = value;
+			}
+		}
+	}
 }
-

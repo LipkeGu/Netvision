@@ -2,11 +2,10 @@
 
 namespace Netvision.Backend.Network
 {
-    public class SiteProvider
-    {
-        public SiteProvider()
-        {
-        }
-    }
+	public class SiteProvider
+	{
+		public SiteProvider()
+		{
+		}
+	}
 }
-

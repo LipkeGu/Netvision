@@ -1,9 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Net;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Netvision.Backend.Network
 {
@@ -15,8 +12,12 @@ namespace Netvision.Backend.Network
 		public event BackendResponseEventHandler BackendResponse;
 		public class BackendResponseEventArgs : EventArgs
 		{
+			public BackendAction Action;
 			public HttpListenerContext Context;
+			public Dictionary<string, string> Parameters;
+			public int Provider;
 			public string Response;
+			public BackendTarget Target;
 		}
 
 		public delegate void BackendHubRequestEventHandler(object sender, BackendHubRequestEventArgs e);
@@ -30,15 +31,15 @@ namespace Netvision.Backend.Network
 			public BackendTarget Target;
 			public Dictionary<string, string> Parameters;
 		}
-		
+
 		public void HeartBeat()
 		{
-			backendhub.HeartBeat();
+			backendhub?.HeartBeat();
 		}
 
-		public Backend(Netvision.Backend.Backend backend)
+		public Backend(ref SQLDatabase db, Netvision.Backend.Backend backend)
 		{
-			backendhub = new BackendHub(this);
+			backendhub = new BackendHub(ref db, this);
 
 			backend.BackendRequest += (sender, e) =>
 			{
@@ -52,11 +53,12 @@ namespace Netvision.Backend.Network
 			};
 
 			backendhub.BackendHubResponse += (sender, e) =>
-            {
+			{
 				var evArgs = new BackendResponseEventArgs();
 				evArgs.Context = e.Context;
 				evArgs.Response = e.Response;
-				
+				evArgs.Target = e.Target;
+
 				BackendResponse?.Invoke(this, evArgs);
 			};
 		}

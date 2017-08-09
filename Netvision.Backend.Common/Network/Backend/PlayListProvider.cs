@@ -1,213 +1,201 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections.Specialized;
 using System.Linq;
 using System.Net;
-using System.IO;
-using System.Text;
 
-using Netvision.Backend.Providers;
+using Netvision.Backend.Provider;
+using System.Threading.Tasks;
+using System.IO;
 
 namespace Netvision.Backend
 {
-    public class PlayListProvider
-    {
-        public delegate void PlayListResponseEventHandler(object sender,PlayListResponseEventArgs e);
+	public class PlayListProvider : IProvider
+	{
+		public delegate void PlayListProviderResponseEventHandler(object sender, PlayListProviderResponseEventArgs e);
+		public event PlayListProviderResponseEventHandler PlayListProviderResponse;
+		public class PlayListProviderResponseEventArgs : EventArgs
+		{
+			public BackendAction Action;
+			public string Response;
+			public int Provider;
+			public HttpListenerContext Context;
+			public Dictionary<string, string> Parameters;
+		}
 
-        public event PlayListResponseEventHandler PlayListResponse;
+		SQLDatabase db;
+		public PlayListProvider(ref SQLDatabase db, BackendHub backend)
+		{
+			this.db = db;
+			backend.PlayListRequest += (sender, e) =>
+			{
+				switch (e.Action)
+				{
+					case BackendAction.Download:
+						Download(e.Provider, e.Response, e.Parameters, e.Context);
+						break;
+					case BackendAction.Create:
+						Create(e.Provider, e.Response, e.Parameters, e.Context);
+						break;
+					case BackendAction.Import:
+						Import(e.Provider, e.Response, e.Parameters, e.Context);
+						break;
+					case BackendAction.Remove:
+						Remove(e.Provider, e.Response, e.Parameters, e.Context);
+						break;
+					case BackendAction.Update:
+						Update(e.Provider, e.Response, e.Parameters, e.Context);
+						break;
+					default:
+						break;
+				}
+			};
+		}
 
-        public class PlayListResponseEventArgs : EventArgs
-        {
-            public string Response;
-            public HttpListenerContext Context;
-        }
+		async Task<bool> TestChannelUrl(string url, string ua)
+		{
+			if (string.IsNullOrEmpty(url))
+				return false;
 
-        public PlayListProvider(BackendHub backend)
-        {
-            backend.PlayListRequest += (sender, e) =>
-            {
-                var evArgs = new PlayListResponseEventArgs();
-                using (var fs = new Filesystem(Directory.GetCurrentDirectory(), 4096))
-                {
-                    if (e.Parameters.ContainsKey("listtype"))
-                    {
-                        var listtype = e.Parameters.ContainsKey("listtype") ? e.Parameters["listtype"] : "1";
-                        using (var db = new SQLDatabase("channels.db"))
-                        {
-                            evArgs.Response = GeneratePlayList(ref e.Parameters, listtype, true);
+			if (url.StartsWith("rtmp"))
+				return true;
 
-                            e.Context.Response.ContentType = "application/x-mpegURL";
-                            e.Context.Response.Headers.Add("Content-Disposition",
-                                "attachment; filename=playlist.m3u8");
+			var result = false;
 
-                            e.Context.Response.StatusCode = 200;
-                            e.Context.Response.StatusDescription = "OK";
-                        }
-                    }
-                    else
-                    {
-                        if (fs.Exists("playlist.m3u8"))
-                        {
-                            evArgs.Response = fs.ReadText("playlist.m3u8", Encoding.UTF8).Result;
+			try
+			{
+				var req = WebRequest.CreateHttp(url);
+				req.UserAgent = ua;
 
-                            e.Context.Response.ContentType = "application/x-mpegURL";
-                            e.Context.Response.Headers.Add("Content-Disposition",
-                                "attachment; filename=playlist.m3u8");
+				using (var res = (HttpWebResponse)await req.GetResponseAsync())
+					result = true;
+			}
+			catch (Exception ex)
+			{
+				await Task.Run(() => Console.WriteLine(ex.Message));
+				result = false;
+			}
 
-                            e.Context.Response.StatusCode = 200;
-                            e.Context.Response.StatusDescription = "OK";
-                        }
-                        else
-                        {
-                            e.Context.Response.StatusCode = 503;
-                            e.Context.Response.StatusDescription = "Service Unavailable";
-                        }
-                    }
-                }
+			return result;
+		}
 
-                evArgs.Context = e.Context;
-                PlayListResponse?.Invoke(this, evArgs);
-            };
-        }
+		async static Task<string> GetURLForChannel(SQLDatabase db, int id, bool heartbeat = false)
+		{
+			var list = new List<string>();
+			var urls = (from s in ChannelProvider.Channels.Members.Values
+						where s.ChanDBID == id
+						where s.Servers.Count != 0
+						select s).FirstOrDefault();
 
-        static List<Channel> GetChannels(string type)
-        {
-            return (from c in ChannelProvider.Channels.Members
-                             where c.Value.Servers.Count != 0
-                             select c.Value).ToList<Channel>();
-        }
+			if (urls != null)
+			{
+				await Task.Run(() =>
+				{
+					for (var i = 0; i < urls.Servers.Count; i++)
+						if (!string.IsNullOrEmpty(urls.Servers[i].URL))
+							list.Add(urls.Servers[i].URL);
+				});
+			}
 
-        public static string GeneratePlayList(ref Dictionary<string,string> parameters, string type, bool heartbeat = false)
-        {
-            var playlist = "#EXTM3U\r\n";       
-            Console.WriteLine("Generating Playlist...");
+			return list.ElementAt(new Random().Next(0, list.Count));
+		}
 
-            var channels = GetChannels(type);
-            using (var db = new SQLDatabase("channels.db"))
-            {    
-                for (var i = 0; i < channels.Count; i++)
-                {
-                    var server = channels[i].Servers.ElementAtOrDefault(new Random().Next(channels[i].Servers.Count)).URL;
-                   
-                    var name = channels[i].Name;
+		public async void Create(int provider, string response,
+			Dictionary<string, string> parameters, HttpListenerContext context)
+		{
+			var playlist = "#EXTM3U\r\n";
+			var channels = (from c in ChannelProvider.Channels.Members.Values
+							where c.Servers.Count != 0
+							select c).ToList();
 
-                    var logo_url = ChannelProvider.GetLogoURLByProvider(db, channels[i].Provider);
-                    var logo = channels[i].Logo;
-                       
-                    if (string.IsNullOrEmpty(logo_url))
-                        logo = string.Empty;
-                    
-                    var epgid = channels[i].ID;
-                    var provider = ChannelProvider.GetProviderNameByID(db, channels[i].Provider);
+			for (var i = 0; i < channels.Count(); i++)
+			{
+				var server = channels.ElementAt(i).Servers[new Random().Next(0, (channels.ElementAt(i).Servers.Count - 1))].URL;
+				var name = channels.ElementAt(i).Name;
+				var logo = channels.ElementAt(i).Logo;
 
-                    playlist += string.Format("#EXTINF:-1 tvg-name=\"{2}\" group-title=\"{3}\" tvg-id=\"{0}\" tvg-logo=\"{1}\",{2}\r\n",
-                        epgid == 0 ? string.Empty : epgid.AsString(), 
-                        !string.IsNullOrEmpty(logo) ? string.Concat(logo_url, logo) : string.Empty,
-                        name, provider);
-                    
-                    server = server.Replace("[#BUFFER#]", parameters.ContainsKey("buffer") ? parameters["buffer"] : "16000000");
-                    playlist += string.Format("{0}\r\n", server);
-                }
-            }
-            if (type != "2")
-            {
-                using (var fstream = File.CreateText("playlist.m3u8"))
-                {
-                    fstream.Write(playlist);
-                }
+				if (string.IsNullOrEmpty(logo))
+					logo = string.Empty;
 
-                Console.WriteLine("Done!");
-            }
+				var epgid = channels.ElementAt(i).ID;
+				var prov = await ChannelProvider.GetProviderNameByID(db, provider);
+				playlist += string.Format("#EXTINF:-1 tvg-name=\"{2}\" group-title=\"{3}\" tvg-id=\"{0}\" tvg-logo=\"{1}\",{2}\r\n",
+					epgid == 0 ? string.Empty : epgid.AsString(),
+					!string.IsNullOrEmpty(logo) ? logo : string.Empty, name, prov);
 
-            return playlist;
-        }
+				playlist += string.Format("{0}\r\n", server);
+			}
 
-        bool TestChannelUrl(string url)
-        {
-            if (string.IsNullOrEmpty(url))
-                return false;
+			MakeResponse(provider, playlist, BackendAction.Create, parameters, context);
+		}
 
-            if (url.StartsWith("rtmp"))
-                return true;
+		public async void Download(int provider, string response, Dictionary<string, string> parameters, HttpListenerContext context)
+		{
+			var ps = await db.SQLQuery<ulong>("SELECT * from playlist_urls WHERE skip='0'");
+			if (ps.Count != 0)
+			{
+				for (var i = ulong.MinValue; i < (ulong)ps.Count; i++)
+				{
+					var ua = ps[i]["ua"];
+					var url = await Functions.ReplaceAndFixNames(db, ps[i]["url"]);
 
-            var result = false;
-            try
-            {
-                var req = (HttpWebRequest)WebRequest.Create(url);
-                req.UserAgent = "VLC/2.2.2 LibVLC/2.2.2";
-                using (var res = (HttpWebResponse)req.GetResponse())
-                {
-                    switch (res.StatusCode)
-                    {
-                        case HttpStatusCode.OK:
-                            result = true;
-                            break;
-                        case HttpStatusCode.Forbidden:
-                        case HttpStatusCode.NotFound:
-                        default:
-                            result = false;
-                            break;
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex.Message);
-                return false;
-            }
+					var file = string.Concat(Path.Combine(Directory.GetCurrentDirectory(),
+						"import/", await Functions.ReplaceAndFixNames(db, ps[i]["file"])));
 
+					using (var wc = new WebClient())
+					{
+						if (!string.IsNullOrEmpty(ua))
+							wc.Headers.Add(HttpRequestHeader.UserAgent, ua);
 
-            return result;
-        }
+						wc.DownloadFileCompleted += (sender, e) =>
+						{
+							Task.Run(() => Console.WriteLine("Playlist saved to: \"{0}\"", file));
+						};
 
-        static string GetURLForChannel(ref SQLDatabase db, int id, string type, bool heartbeat = false)
-        {
-            var list = new List<string>();
-            var urls = (from s in ChannelProvider.Channels.Members.Values
-                                 where s.ID == id
-                                 select s.Servers).FirstOrDefault();
-            
-            var url = string.Empty;
+						wc.DownloadFileAsync(new Uri(url), file);
+					}
+				}
+			}
 
-            for (var i = 0; i < urls.Count; i++)
-            {
-                if (!string.IsNullOrEmpty(urls[i].URL))
-                {
-                    if (urls[i].Type == 2)
-                        url = string.Format("plugin://plugin.video.f4mTester/?url={0}&amp;streamtype=TSDOWNLOADER&amp;maxbitrate=0&amp;Buffer=[#BUFFER#]", urls[i].URL);
-                    else
-                        url = urls[i].URL;
+			MakeResponse(provider, string.Empty, BackendAction.Download, parameters, context);
+		}
 
-                    list.Add(url);
-                }
-            }
+		public async void Import(int provider, string response, Dictionary<string, string> parameters, HttpListenerContext context)
+		{
+		}
 
-            return list.ElementAtOrDefault(new Random().Next(list.Count));
-        }
+		public async void Update(int provider, string response, Dictionary<string, string> parameters, HttpListenerContext context)
+		{
+			var urls = (from c in ChannelProvider.Channels.Members.Values
+						where c.Provider == provider
+						where c.Servers.Count != 0
+						select c.Servers.FirstOrDefault()).ToList();
 
-        public void HeartBeat()
-        {
-            var updatePlayList = false;
+			for (var i = 0; i < urls.Count; i++)
+				if (!await TestChannelUrl(urls[i].URL, await Functions.GetUseragentByID(db, urls[i].UserAgent)))
+					await Task.Run(() => db.SQLInsert(string.Format("DELETE FROM servers WHERE url='{0}'", urls[i])));
 
-            if (DateTime.Now.Hour == 2 || DateTime.Now.Hour == 8 ||
-                DateTime.Now.Hour == 14 || DateTime.Now.Hour == 20)
-            {
-                if (DateTime.Now.Minute <= 3)
-                    updatePlayList = true;
+			MakeResponse(provider, string.Empty, BackendAction.Update, parameters, context);
+		}
 
-                if (updatePlayList)
-                {
-                    using (var db = new SQLDatabase("channels.db"))
-                    {
-                        var urls = db.SQLQuery<ulong>("SELECT * from servers");
-                        for (var i = ulong.MinValue; i < (ulong)urls.Count; i++)
-                        {
-                            if (!TestChannelUrl(urls[i]["url"]))
-                                db.SQLInsert(string.Format("DELETE FROM servers WHERE url='{0}'", urls[i]["url"]));
-                        }
-                    }
-                }
-            }
-        }
-    }
+		public void MakeResponse(int provider, string response, BackendAction action,
+			Dictionary<string, string> parameters, HttpListenerContext context)
+		{
+			var evArgs = new PlayListProviderResponseEventArgs();
+			evArgs.Provider = provider;
+			evArgs.Action = action;
+			evArgs.Response = response;
+			evArgs.Context = context;
+			evArgs.Parameters = parameters;
+
+			PlayListProviderResponse?.Invoke(this, evArgs);
+		}
+
+		public void Remove(int provider, string response, Dictionary<string, string> parameters, HttpListenerContext context)
+		{
+		}
+
+		public void Add(int provider, string response, Dictionary<string, string> parameters, HttpListenerContext context)
+		{
+		}
+	}
 }

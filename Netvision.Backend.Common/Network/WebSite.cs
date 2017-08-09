@@ -9,55 +9,51 @@ using Netvision.Backend;
 namespace Netvision.Backend.Network
 {
 
-    public class WebSite
-    {
-        WebSiteHub websitehub;
+	public class WebSite
+	{
+		WebSiteHub websitehub;
 
-        public delegate void WebSiteResponseEventHandler(object sender,WebSiteResponseEventArgs e);
+		public delegate void WebSiteResponseEventHandler(object sender, WebSiteResponseEventArgs e);
+		public event WebSiteResponseEventHandler WebSiteResponse;
+		public class WebSiteResponseEventArgs : EventArgs
+		{
+			public HttpListenerContext Context;
+			public string Response;
+		}
 
-        public event WebSiteResponseEventHandler WebSiteResponse;
+		public delegate void WebSiteHubRequestEventHandler(object sender, WebSiteHubRequestEventArgs e);
+		public event WebSiteHubRequestEventHandler WebSiteHubRequest;
+		public class WebSiteHubRequestEventArgs : EventArgs
+		{
+			public HttpListenerContext Context;
+			public string Response;
 
-        public class WebSiteResponseEventArgs : EventArgs
-        {
-            public HttpListenerContext Context;
-            public string Response;
-        }
+			public BackendAction Action;
+			public BackendTarget Target;
+			public Dictionary<string, string> Parameters;
+		}
 
-        public delegate void WebSiteHubRequestEventHandler(object sender,WebSiteHubRequestEventArgs e);
+		public WebSite(Netvision.Backend.Backend backend)
+		{
+			websitehub = new WebSiteHub(this);
 
-        public event WebSiteHubRequestEventHandler WebSiteHubRequest;
+			backend.WebSiteRequest += (sender, e) =>
+			{
+				var evArgs = new WebSiteHubRequestEventArgs();
+				evArgs.Context = e.Context;
+				evArgs.Parameters = e.Parameters;
 
-        public class WebSiteHubRequestEventArgs : EventArgs
-        {
-            public HttpListenerContext Context;
-            public string Response;
+				WebSiteHubRequest?.Invoke(this, evArgs);
+			};
 
-            public BackendAction Action;
-            public BackendTarget Target;
-            public Dictionary<string, string> Parameters;
-        }
+			websitehub.WebSiteHubResponse += (sender, e) =>
+			{
+				var evArgs = new WebSiteResponseEventArgs();
+				evArgs.Context = e.Context;
+				evArgs.Response = e.Response;
 
-        public WebSite(Netvision.Backend.Backend backend)
-        {
-            websitehub = new WebSiteHub(this);
-
-            backend.WebSiteRequest += (sender, e) =>
-            {
-                var evArgs = new WebSiteHubRequestEventArgs();
-                evArgs.Context = e.Context;
-                evArgs.Parameters = e.Parameters;
-
-                WebSiteHubRequest?.Invoke(this, evArgs);
-            };
-
-            websitehub.WebSiteHubResponse += (sender, e) =>
-            {
-                var evArgs = new WebSiteResponseEventArgs();
-                evArgs.Context = e.Context;
-                evArgs.Response = e.Response;
-
-                WebSiteResponse?.Invoke(this, evArgs);
-            };
-        }
-    }
+				WebSiteResponse?.Invoke(this, evArgs);
+			};
+		}
+	}
 }
