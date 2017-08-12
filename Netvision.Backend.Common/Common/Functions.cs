@@ -1,8 +1,6 @@
 ﻿using System;
 using Netvision.Backend;
 using System.Threading.Tasks;
-using System.Net;
-using System.Collections.Generic;
 
 namespace Netvision
 {
@@ -36,20 +34,25 @@ namespace Netvision
 			return await db.SQLQuery(string.Format("SELECT name FROM user_agents WHERE id='{0}'", id), "name");
 		}
 
-		public static async Task<string> ReplaceAndFixNames(SQLDatabase db, string input)
+		public async static Task<int> GetUseragentIDByName(SQLDatabase db, string name)
+		{
+			return int.Parse(await db.SQLQuery(string.Format("SELECT id FROM user_agents WHERE name='{0}'", name), "id"));
+		}
+
+		public static async Task<string> ReplaceAndFixNames(SQLDatabase db, string input, bool split = true)
 		{
 			var output = input;
 
-			if (output.Contains("|"))
+			if (output.Contains("|") && split)
 				output = output.Split('|')[1].Trim();
 
-			if (output.Contains(":"))
+			if (output.Contains(":") && split)
 				output = output.Split(':')[1].Trim();
 
 			if (output.EndsWith("Hd"))
 				output = output.Substring(0, output.Length - 2).Trim();
 
-			output = output.Replace(" Hd ", string.Empty);
+			output = output.Replace(" Hd ", string.Empty).Trim();
 
 			if (output.EndsWith("De"))
 				output = output.Substring(0, output.Length - 2).Trim();
@@ -69,7 +72,7 @@ namespace Netvision
 			output = output.Replace("[#MONTH#]", formatNumberValue(DateTime.Today.Month));
 			output = output.Replace("[#YEAR#]", formatNumberValue(DateTime.Today.Year));
 
-			return output;
+			return output.Trim();
 		}
 
 		public static string formatNumberValue(this int number)

@@ -12,12 +12,18 @@ namespace Netvision.Backend.Provider
 
 		string contentType;
 		string useragent;
-		int statuscode;
+		string method;
+
+		HttpStatusCode statuscode;
 
 		long contentLength;
 
-		public HTTPClient(string url)
+		public HTTPClient(string url, string method = "GET")
 		{
+			this.method = method;
+			contentType = string.Empty;
+			useragent = string.Empty;
+
 			wc = WebRequest.CreateHttp(url);
 			wc.AutomaticDecompression = DecompressionMethods.GZip;
 		}
@@ -29,13 +35,13 @@ namespace Netvision.Backend.Provider
 			try
 			{
 				wc.UserAgent = useragent;
-				wc.KeepAlive = false;
+				wc.Method = method;
 
 				using (var response = (HttpWebResponse)await wc.GetResponseAsync())
 				{
 					contentLength = response.ContentLength;
 					contentType = response.ContentType.Split(';')[0];
-					statuscode = (int)response.StatusCode;
+					statuscode = response.StatusCode;
 
 					using (var strm = response.GetResponseStream())
 						using (var str = new StreamReader(strm))
@@ -48,7 +54,7 @@ namespace Netvision.Backend.Provider
 			}
 			catch (Exception ex)
 			{
-				await Task.Run(() => Console.WriteLine("HTTP Error: {0}", ex.Message));
+				await Task.Run(() => Console.WriteLine("HTTPClient Error: {0}", ex.Message));
 			}
 
 			return x;
@@ -61,12 +67,17 @@ namespace Netvision.Backend.Provider
 
 		public string ContentType
 		{
-			get { return contentType; }
+			get { return contentType.ToLowerInvariant(); }
 		}
 
-		public int StatusCode
+		public HttpStatusCode StatusCode
 		{
 			get { return statuscode; }
+		}
+
+		public string Method
+		{
+			get { return method; }
 		}
 
 		public string UserAgent

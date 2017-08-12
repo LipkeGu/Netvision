@@ -79,14 +79,21 @@ namespace Netvision.Backend.Provider
 		/// </summary>
 		/// <param name="name">Name.</param>
 		/// <param name="member">Member.</param>
-		public void Add(string name, T member)
+		public bool Add(string name, T member)
 		{
+			var result = false;
+
 			if (string.IsNullOrEmpty(name))
 				throw new ArgumentException("Key is Empty (or nothing)!");
 
 			lock (members)
 				if (!Exist(name))
+				{
 					members.Add(name, member);
+					result = true;
+				}
+
+			return result;
 		}
 
 		/// <summary>

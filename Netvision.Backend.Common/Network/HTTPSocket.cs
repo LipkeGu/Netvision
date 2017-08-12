@@ -314,12 +314,13 @@ namespace Netvision.Backend.Network
 		{
 			if (context == null)
 				return;
+
 			try
 			{
-			context.Response.ContentLength64 = data.Length;
-			await context.Response.OutputStream.WriteAsync(data, 0, data.Length);
+				context.Response.ContentLength64 = data.Length;
+				await context.Response.OutputStream.WriteAsync(data, 0, data.Length);
 
-			context.Response.OutputStream.Close();
+				context.Response.OutputStream.Close();
 			}
 			catch (Exception ex)
 			{

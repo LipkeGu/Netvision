@@ -94,7 +94,7 @@ namespace Netvision.Backend
 						BackendHubResponse?.Invoke(this, evArgs);
 						break;
 					case BackendAction.Update:
-						BackendHubResponse?.Invoke(this, evArgs);
+						MakeRequest(BackendTarget.Playlist, BackendAction.Create, e.Context, e.Parameters, e.Response, e.Provider);
 						break;
 					default:
 						break;

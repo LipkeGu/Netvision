@@ -6,10 +6,11 @@ using System.IO;
 using Netvision.Backend.Provider;
 using System.Threading.Tasks;
 using System.Text;
+using System.Linq;
 
 namespace Netvision.Backend
 {
-	public class ChannelProvider
+	public class ChannelProvider : IProvider
 	{
 		public delegate void ChannelProviderResponseEventHandler(object sender, ChannelProviderResponseEventArgs e);
 		public event ChannelProviderResponseEventHandler ChannelProviderResponse;
@@ -31,7 +32,7 @@ namespace Netvision.Backend
 		{
 			var chs = await db.SQLQuery<ulong>("SELECT * FROM channels");
 
-			if (chs.Count != 100000)
+			if (chs.Count != 0)
 			{
 				for (var i = ulong.MinValue; i < (ulong)chs.Count; i++)
 				{
@@ -45,19 +46,16 @@ namespace Netvision.Backend
 
 					var servers = await db.SQLQuery<ulong>(string.Format("SELECT * FROM servers WHERE channel='{0}'", chs[i]["id"]));
 					if (servers.Count != 0)
-					{
 						for (var i2 = ulong.MinValue; i2 < (ulong)servers.Count; i2++)
-							channel.Servers.Add(new Server(servers[i2]["url"], int.Parse(servers[i2]["type"])));
-					}
+							channel.Servers.Add(new Server(servers[i2]["url"],
+								int.Parse(servers[i2]["type"]), int.Parse(servers[i2]["ua"])));
 
 					if (!Channels.Exist(channel.Name))
 						Channels.Add(channel.Name, channel);
 				}
 			}
 			else
-			{
 				await Task.Run(() => Console.WriteLine("No Channels to load from Database!"));
-			}
 		}
 
 		public ChannelProvider(BackendHub backend)
@@ -78,6 +76,7 @@ namespace Netvision.Backend
 						Import(e.Provider, e.Response, e.Parameters, e.Context);
 						break;
 					case BackendAction.Remove:
+						Remove(e.Provider, e.Response, e.Parameters, e.Context);
 						break;
 					case BackendAction.Update:
 						Update(e.Provider, e.Response, e.Parameters, e.Context);
@@ -140,26 +139,38 @@ namespace Netvision.Backend
 
 		public async static Task<string> GetLogoURLByProvider(SQLDatabase db, int provider)
 		{
-			return await db.SQLQuery(string.Format("SELECT url FROM logo_lists WHERE provider='{0}'", provider), "url");
+			var s = await db.SQLQuery(string.Format("SELECT url FROM logo_lists WHERE provider='{0}'", provider), "url");
+			if (s == "--nolist--")
+				s = string.Empty;
+
+			return s;
 		}
 
 		public async static Task<string> GetLogoByID(SQLDatabase db, int logo_id, int provider)
 		{
-			var url = GetLogoURLByProvider(db, provider).Result.Replace("--nolist--", string.Empty);
-
 			var logo = await db.SQLQuery(string.Format("SELECT file FROM channel_logos WHERE id='{0}'", logo_id), "file");
-			return (logo == "--nologo--") ? string.Empty : string.Concat(url, logo);
+			if (logo == "--nologo--")
+				logo = string.Empty;
+
+			return logo;
 		}
 
 		public async static Task<string> GetChannelNameByID(SQLDatabase db, int id)
 		{
-			Console.WriteLine("ID: {0}", id);
 			return await db.SQLQuery(string.Format("SELECT name FROM channel_names WHERE id='{0}'", id), "name");
 		}
 
 		public async static Task<string> GetProviderNameByID(SQLDatabase db, int id)
 		{
 			return await db.SQLQuery(string.Format("SELECT name FROM providers WHERE id='{0}'", id), "name");
+		}
+
+		public async static Task<int> GetProviderIDByName(SQLDatabase db, string name, int id = 0)
+		{
+			if (await db.Count("providers", "name", name) == 0)
+				return id;
+
+			return int.Parse(await db.SQLQuery(string.Format("SELECT id FROM providers WHERE name='{0}'", name), "id"));
 		}
 
 		public async static Task<string> GetEPGIDByID(SQLDatabase db, int id)
@@ -176,6 +187,35 @@ namespace Netvision.Backend
 			return int.Parse(await db.SQLQuery(string.Format("SELECT id FROM channels WHERE name='{0}'", name_id), "id"));
 		}
 
+		public async void AddChannel(string name, string logo, int id,
+			int provider, int chan_number, int type, Server server)
+		{
+			await Task.Run(() =>
+			{
+				lock (Channels)
+				{
+					if (!Channels.Exist(name))
+					{
+						var channel = new Channel();
+						channel.Name = name;
+						channel.Logo = logo;
+						channel.ID = id;
+						channel.Type = type;
+
+						if (server != null)
+							channel.Servers.Add(server);
+
+						channel.Provider = provider;
+						channel.ChanNo = chan_number;
+
+						if (Channels.Add(channel.Name, channel))
+							Console.WriteLine("Adding Channel: \"{0}\" (EPG ID: {1}; Channel Nr: {2})",
+								channel.Name, channel.ID, channel.ChanNo);
+					}
+				}
+			});
+		}
+
 		public async void Create(int provider, string response, Dictionary<string, string> parameters, HttpListenerContext context)
 		{
 			if (response.StartsWith("{"))
@@ -190,60 +230,55 @@ namespace Netvision.Backend
 				var ChannelList = JsonConvert.DeserializeObject<Dictionary<string, List<Channel>>>(response);
 
 				foreach (var entry in ChannelList)
-				{
 					for (var i = 0; i < entry.Value.Count; i++)
 					{
 						var chan_name = entry.Value[i].Name.FirstCharUpper(db).Result.Trim();
-						if (!Channels.Exist(chan_name))
-						{
-							var channel = new Channel();
-							channel.Name = chan_name;
-							channel.Logo = entry.Value[i].Logo;
-							channel.ID = entry.Value[i].ID;
-							channel.Provider = provider;
-							channel.ChanNo = entry.Value[i].ChanNo;
 
-							await Task.Run(() =>
-							{
-								lock (Channels)
-								{
-									Console.WriteLine("Adding Channel: \"{0}\" (EPG ID: {1}; Channel Nr: {2})",
-										channel.Name, channel.ID, channel.ChanNo);
-
-									Channels.Add(channel.Name, channel);
-								}
-							});
-						}
+						AddChannel(chan_name, entry.Value[i].Logo, entry.Value[i].ID, provider,
+							entry.Value[i].ChanNo, 0, null);
 					}
-				}
-
-				MakeResponse(provider, string.Empty, BackendAction.Create, parameters, context);
 			}
+
+			MakeResponse(provider, string.Empty, BackendAction.Create, parameters, context);
+		}
+
+		public static IEnumerable<Channel> GetChannels()
+		{
+			return (from c in Channels.Members.Values where c.Servers.Count != 0 select c);
+		}
+
+		public static IEnumerable<int> GetChannelIDs()
+		{
+			return (from c in GetChannels() where c.ID != 0 select c.ID).OrderBy(c => c);
 		}
 
 		public async void Download(int provider, string response, Dictionary<string, string> parameters, HttpListenerContext context)
 		{
-			try
+			var prov = await GetProviderNameByID(db, provider);
+			var res = string.Empty;
+			using (var fs = new Filesystem())
 			{
-				using (var chan_wc = new WebClient())
+				var dir = string.Format("Download/channels/{0}", provider);
+				Directory.CreateDirectory(dir);
+
+				var f = fs.ResolvePath(Filesystem.Combine(dir, "channels.json"));
+				if (!fs.Exists(f))
 				{
-					chan_wc.Encoding = Encoding.UTF8;
-					chan_wc.DownloadStringCompleted += (sender, e) =>
-					{
-						MakeResponse(provider, e.Result, BackendAction.Download, parameters, context);
-					};
-
-					var prov = await GetProviderNameByID(db, provider);
 					await Task.Run(() => Console.WriteLine("Downloading Channel List for Provider: {0}", prov));
-
 					var url = await db.SQLQuery(string.Format("SELECT url FROM channel_lists WHERE provider='{0}'", provider), "url");
+					var hc = new HTTPClient(url);
 
-					await chan_wc.DownloadStringTaskAsync(new Uri(url));
+					res = Encoding.UTF8.GetString(await hc.GetResponse());
+
+					await Task.Run(() => fs.Write(f, res));
 				}
-			}
-			catch (Exception ex)
-			{
-				await Task.Run(() => Console.WriteLine(ex.Message));
+				else
+				{
+					await Task.Run(() => Console.WriteLine("Reading cached Channel List (\"{1}\") for Provider: {0}", prov, f));
+					res = await fs.ReadText(f, Encoding.UTF8);
+				}
+
+				MakeResponse(provider, res, BackendAction.Download, parameters, context);
 			}
 		}
 
@@ -260,20 +295,19 @@ namespace Netvision.Backend
 
 				using (var reader = new StreamReader(playlist.FullName, true))
 				{
-					var line = string.Empty;
 					var name = string.Empty;
 					var status = 0;
 					var url = string.Empty;
 
-					var ua = "VLC/2.2.2 LibVLC/2.2.2"; ;
-					var type = 1;
+					var ua = await Functions.GetUseragentByID(db, 1);
+					var uaid = await Functions.GetUseragentIDByName(db, ua);
+					var type = 0;
 
 					while (!reader.EndOfStream)
 					{
-						line = await reader.ReadLineAsync();
+						var line = await reader.ReadLineAsync();
 
 						if (!string.IsNullOrEmpty(line) && line.Length > 10)
-						{
 							if (line.StartsWith("#EXTINF:"))
 							{
 								line = await line.Split(',')[1].FirstCharUpper(db);
@@ -285,93 +319,96 @@ namespace Netvision.Backend
 
 								if (url.StartsWith("http"))
 								{
-									var req = WebRequest.CreateHttp(url);
-									if (!string.IsNullOrEmpty(ua))
-										req.UserAgent = ua;
+									var hc = new HTTPClient(url);
+									hc.UserAgent = ua;
+									await hc.GetResponse();
 
-									try
+									switch (hc.ContentType)
 									{
-										using (var res = await req.GetResponseAsync())
-										{
-											var ctype = res.ContentType.ToLowerInvariant();
-
-											switch (ctype)
-											{
-												case "application/x-mpegurl":
-												case "application/vnd.apple.mpegurl":
-													status = 1;
-													type = 1;
-													break;
-												case "video/mp2t":
-													status = 1;
-													type = 2;
-													break;
-												default:
-													status = 0;
-													type = 0;
-													break;
-											}
-										}
-									}
-									catch (Exception ex)
-									{
-										await Task.Run(() => Console.WriteLine(ex.Message));
-										status = 0;
-										type = 0;
+										case "application/x-mpegurl":
+										case "application/vnd.apple.mpegurl":
+											status = 1;
+											type = 1;
+											break;
+										case "video/mp2t":
+											status = 1;
+											type = 1;
+											break;
+										default:
+											status = 0;
+											type = 0;
+											break;
 									}
 								}
 								else
+									if (url.StartsWith("rtmp") || url.StartsWith("udp"))
 								{
 									status = 1;
 									type = 1;
 								}
+								else
+								{
+									status = 0;
+									type = 0;
+								}
 
 								if (status != 0)
 								{
-									var xs = await AddChannelLogo("--nologo--", provider);
-									var channel = new Channel();
-
-									channel.Name = name.Trim();
-									channel.Logo = await GetLogoByID(db, xs, provider);
-									channel.ID = await AddChannelEPGID("noepg.epg", provider);
-									channel.Provider = provider;
-									channel.Type = type;
-									channel.Servers.Add(new Server(url, type));
-									channel.ChanNo = 0;
-
 									await Task.Run(() =>
 									{
 										lock (Channels)
-										{
 											if (!Channels.Exist(name))
-											{
-												Console.WriteLine("Adding Channel: \"{0}\" (EPG ID: {1}; Channel Nr: {2})",
-												channel.Name, channel.ID, channel.ChanNo);
-												Channels.Add(channel.Name, channel);
-											}
+												AddChannel(name, GetLogoByID(db, AddChannelLogo("--nologo--", provider).Result, provider).Result,
+													AddChannelEPGID("noepg.epg", provider).Result, GetProviderIDByName(db, "Custom", provider).Result, 0, type,
+													new Server(url, type, uaid));
 											else
-												Channels.Members[channel.Name].Servers.Add(new Server(url, type));
-										}
+												Channels.Members[name].Servers.Add(new Server(url, type, uaid));
 									});
 								}
 							}
-						}
 					}
 				}
-
-				MakeResponse(provider, string.Empty, BackendAction.Import, parameters, context);
 			}
+
+			await Task.Run(() => Console.WriteLine("Playlists imported!"));
+			MakeResponse(provider, string.Empty, BackendAction.Import, parameters, context);
 		}
 
 		public async void Update(int provider, string response, Dictionary<string, string> parameters, HttpListenerContext context)
 		{
-			Channels.Members.Clear();
-			await Task.Run(() => ImportChannelsFromDataBase());
+			var channels = GetChannels();
+			foreach (var channel in channels)
+				foreach (var server in channel.Servers)
+				{
+					if (server.URL.StartsWith("rtmp"))
+						continue;
 
-			foreach (var item in Channels.Members.Values)
+					try
+					{
+						var hc = new HTTPClient(server.URL);
+						hc.UserAgent = await Functions.GetUseragentByID(db, server.UserAgent);
+						await Task.Run(() => hc.GetResponse());
+
+						if (hc.StatusCode != HttpStatusCode.OK &&
+							hc.StatusCode != HttpStatusCode.Moved)
+						{
+							lock (Channels.Members)
+								Channels.Members[channel.Name].Servers.Remove(server);
+
+							await Task.Run(() => Console.WriteLine(
+								"Removing URL: {0} (Status Code: {1})...", server.URL, hc.StatusCode));
+						}
+					}
+					catch (Exception ex)
+					{
+						await Task.Run(() => Console.WriteLine("Url: {0}\r\nException: {1}", server.URL, ex));
+					}
+				}
+
+			foreach (var item in channels)
 			{
 				var n = await item.Name.FirstCharUpper(db);
-				var ch_nameid = await AddChannelName(db, n);
+				var ch_nameid = await AddChannelName(db, n.Trim());
 				var ch_logoid = await AddChannelLogo(item.Logo, item.Provider);
 				var ch_epgid = await AddChannelEPGID(item.ID, item.Provider);
 
@@ -400,6 +437,16 @@ namespace Netvision.Backend
 			evArgs.Parameters = parameters;
 
 			ChannelProviderResponse?.Invoke(this, evArgs);
+		}
+
+		public void Remove(int provider, string response, Dictionary<string, string> parameters, HttpListenerContext context)
+		{
+			throw new NotImplementedException();
+		}
+
+		public void Add(int provider, string response, Dictionary<string, string> parameters, HttpListenerContext context)
+		{
+			throw new NotImplementedException();
 		}
 	}
 }

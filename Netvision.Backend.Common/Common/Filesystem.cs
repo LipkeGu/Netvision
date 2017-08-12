@@ -1,9 +1,8 @@
 ﻿using System;
 using System.IO;
 using System.IO.Compression;
-using System.Linq;
-
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Netvision.Backend
@@ -42,8 +41,12 @@ namespace Netvision.Backend
 		/// <param name="path">Path.</param>
 		public void Delete(string path)
 		{
-			if (File.Exists(path))
-				File.Delete(path);
+			var p = ResolvePath(path);
+			if (File.Exists(p))
+				File.Delete(p);
+
+			// wait a little bit to stay save...
+			Thread.Sleep(10);
 		}
 
 		/// <summary>
@@ -126,9 +129,8 @@ namespace Netvision.Backend
 		/// <param name="count">Count.</param>
 		public async void Write(string path, byte[] data, int offset = 0, int count = 0)
 		{
-			using (var fs = new FileStream(ResolvePath(path),
-				FileMode.OpenOrCreate, FileAccess.Write))
-				await fs.WriteAsync(data, 0, count);
+			using (var fs = File.Create(path))
+				await fs.WriteAsync(data, offset, data.Length);
 		}
 
 		/// <summary>
@@ -138,12 +140,10 @@ namespace Netvision.Backend
 		/// <param name="data">Data.</param>
 		/// <param name="offset">Offset.</param>
 		/// <param name="count">Count.</param>
-		public void Write(string path, ref string data, int offset = 0, int count = 0)
+		public async void Write(string path, string data)
 		{
-			var chars = data.ToCharArray();
-			var tmp = Encoding.UTF8.GetBytes(chars, 0, chars.Length);
-
-			Write(path, tmp, offset, count);
+			var bytes = Encoding.UTF8.GetBytes(data);
+			await Task.Run(() => Write(path, bytes));
 		}
 
 		/// <summary>
@@ -152,9 +152,11 @@ namespace Netvision.Backend
 		/// <param name="filename">File to compress.</param>
 		public async void GZipCompress(string filename)
 		{
-			using (var fstream = File.OpenRead(ResolvePath(filename)))
+			var file = ResolvePath(filename);
+			using (var fstream = File.OpenRead(file))
 			{
-				var f = string.Concat(ResolvePath(filename), ".gz");
+				var f = string.Concat(file, ".gz");
+
 				Delete(f);
 
 				using (var gzfile = File.Create(ResolvePath(f)))
@@ -174,6 +176,24 @@ namespace Netvision.Backend
 
 		public void Dispose()
 		{
+		}
+
+		/// <summary>
+		/// Returns the Size of the File
+		/// </summary>
+		/// <param name="file">Full path to file</param>
+		/// <returns>The Size of the file</returns>
+		public long Length(string file)
+		{
+			var l = 0L;
+
+			if (!Exists(file))
+				return l;
+
+			using (var fs = new FileStream(ResolvePath(file), FileMode.Open, FileAccess.Read))
+				l = fs.Length;
+
+			return l;
 		}
 
 		/// <summary>
