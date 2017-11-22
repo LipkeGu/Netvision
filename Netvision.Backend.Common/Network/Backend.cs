@@ -32,15 +32,11 @@ namespace Netvision.Backend.Network
 			public Dictionary<string, string> Parameters;
 		}
 
-		public void HeartBeat()
-		{
-			backendhub?.HeartBeat();
-		}
+		public void HeartBeat() => backendhub?.HeartBeat();
 
 		public Backend(ref SQLDatabase db, Netvision.Backend.Backend backend)
 		{
 			backendhub = new BackendHub(ref db, this);
-
 			backend.BackendRequest += (sender, e) =>
 			{
 				var evArgs = new BackendHubRequestEventArgs();

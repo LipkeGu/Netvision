@@ -1,7 +1,7 @@
-﻿using Netvision.Backend.Provider;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Net;
+using System.Threading.Tasks;
 
 namespace Netvision.Backend
 {
@@ -37,10 +37,6 @@ namespace Netvision.Backend
 		public BackendHub(ref SQLDatabase db, Network.Backend backend)
 		{
 			channel = new ChannelProvider(this);
-
-			MakeRequest(BackendTarget.Channel, BackendAction.Download,
-				null, new Dictionary<string, string>(), string.Empty, 1);
-			
 			channel.ChannelProviderResponse += (sender, e) =>
 			{
 				var evArgs = new BackendHubResponseEventArgs();
@@ -69,7 +65,7 @@ namespace Netvision.Backend
 						break;
 				}
 			};
-			
+
 			playlist = new PlayListProvider(ref db, this);
 			playlist.PlayListProviderResponse += (sender, e) =>
 			{
@@ -133,8 +129,30 @@ namespace Netvision.Backend
 
 			backend.BackendHubRequest += (sender, e) =>
 			{
-				MakeRequest(e.Target, e.Action, e.Context, e.Parameters, e.Response, 1);
+				MakeRequest(e.Target, e.Action, e.Context, e.Parameters, e.Response, 0);
 			};
+
+			var providers = db.SQLQuery<uint>("SELECT * FROM providers WHERE id !='0' AND skip !='1'").Result;
+			if (providers.Count != 0)
+			{
+				for (var i = uint.MinValue; i < providers.Count; i++)
+				{
+					var x = new Dictionary<string, string>();
+					x.Add("chanlist", providers[i]["channel_list"]);
+					x.Add("logolist", providers[i]["logo_list"]);
+					x.Add("epglist", providers[i]["epg_list"]);
+					x.Add("playlists", providers[i]["playlist_urls"]);
+
+					var clist = providers[i]["channel_list"];
+					var provider = int.Parse(providers[i]["id"]);
+
+					Task.Run(() => MakeRequest((clist != "0") ? BackendTarget.Channel :
+						BackendTarget.Playlist, BackendAction.Download, null, x, string.Empty, provider));
+				}
+			}
+			else
+				Task.Run(() => MakeRequest(BackendTarget.Playlist, BackendAction.Download,
+					null, new Dictionary<string, string>(), string.Empty, 0));
 		}
 
 		void MakeRequest(BackendTarget target, BackendAction action, HttpListenerContext context,

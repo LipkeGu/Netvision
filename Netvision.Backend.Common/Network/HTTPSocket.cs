@@ -14,7 +14,8 @@ namespace Netvision.Backend.Network
 		{
 			PlayList,
 			EPG,
-			WebSite
+			WebSite,
+			StreamProxy
 		}
 
 		HttpListener listener;
@@ -84,18 +85,10 @@ namespace Netvision.Backend.Network
 			}
 		}
 
-		async void start()
+		async void Start()
 		{
-			try
-			{
-				listener.Start();
-
-				await HandleClientConnections(listener);
-			}
-			catch (Exception ex)
-			{
-				await Task.Run(() => Console.WriteLine(ex.Message));
-			}
+			listener.Start();
+			Task.Run(() => HandleClientConnections(listener).ConfigureAwait(false));
 		}
 
 		public HTTPSocket(string domain, int port, string path)
@@ -103,21 +96,23 @@ namespace Netvision.Backend.Network
 			listener = new HttpListener();
 			listener.Prefixes.Add(string.Format("http://{0}:{1}/{2}", domain, port, path));
 
-			Task.Run(() => start());
+			Task.Run(() => Start());
 		}
 
 		async Task HandleClientConnections(HttpListener listener)
 		{
-			var context = await listener.GetContextAsync();
-			var path = await GetContentType(context.Request.Url.AbsoluteUri, context);
+			var context = listener.GetContextAsync().Result;
+			var path = GetContentType(context.Request.Url.AbsoluteUri, context).Result;
 
 			var evargs = new DataReceivedEventArgs();
 			evargs.Context = context;
 			evargs.UserAgent = context.Request.UserAgent;
-			evargs.Parameters = await GetPostData(path, context);
+			evargs.Parameters = GetPostData(path, context).Result;
 
-			if (path.EndsWith("/epg/") || path.Contains("/epg") || path.EndsWith("/playlist/") || path.Contains("/playlist")
-			|| path.Contains("/channel/") || path.Contains("/channel"))
+			if (path.EndsWith("/epg/") || path.Contains("/epg") ||
+				path.EndsWith("/playlist/") || path.Contains("/playlist") ||
+				path.Contains("/channel/") || path.Contains("/channel") ||
+					path.Contains("/tsproxy/") || path.Contains("/tsproxy"))
 			{
 				if (path.EndsWith("/epg/") || path.Contains("/epg"))
 				{
@@ -126,14 +121,30 @@ namespace Netvision.Backend.Network
 				}
 				else
 				{
-					evargs.Target = BackendTarget.Playlist;
-					evargs.Path = path;
+					if (path.EndsWith("/playlist/") || path.Contains("/playlist"))
+					{
+						evargs.Target = BackendTarget.Playlist;
+						evargs.Path = path;
+					}
+					else
+					{
+						if (path.EndsWith("/tsproxy/") || path.Contains("/tsproxy"))
+						{
+							evargs.Target = BackendTarget.TSProxy;
+							evargs.Path = path;
+						}
+						else
+						{
+							evargs.Target = BackendTarget.Channel;
+							evargs.Path = path;
+						}
+					}
 				}
 			}
 
-			DataReceived?.Invoke(this, evargs);
+			Task.Run(() => DataReceived?.Invoke(this, evargs));
 
-			await HandleClientConnections(listener);
+			Task.Run(() => HandleClientConnections(listener).ConfigureAwait(false));
 		}
 
 		public static async Task<Dictionary<string, string>> GetPostData(string path, HttpListenerContext context)
@@ -148,10 +159,10 @@ namespace Netvision.Backend.Network
 					var line = string.Empty;
 
 					using (var reader = new StreamReader(context.Request.InputStream, encoding))
-						line = await reader.ReadToEndAsync();
+						line = reader.ReadToEndAsync().Result;
 
 					if (string.IsNullOrEmpty(line))
-						return null;
+						return formdata;
 
 					if (!string.IsNullOrEmpty(context.Request.ContentType))
 					{
@@ -168,7 +179,6 @@ namespace Netvision.Backend.Network
 							var formparts = new List<string>();
 
 							while (line.Contains(boundary))
-							{
 								if (line.StartsWith("Content-Disposition:"))
 								{
 									start = line.IndexOf("Content-Disposition: form-data;") +
@@ -186,52 +196,55 @@ namespace Netvision.Backend.Network
 									else
 										break;
 								}
-							}
 
-							foreach (var item in formparts)
-								if (item.Contains("filename=\""))
-								{
-									var posttag = item.Substring(0, item.IndexOf(";"));
-									var data = item;
-									start = data.IndexOf("filename=\"") + "filename=\"".Length;
-									data = data.Remove(0, start);
-									end = data.IndexOf("\"");
-
-									var filename = data.Substring(0, end);
-									if (string.IsNullOrEmpty(filename))
-										continue;
-
-									if (filename.Contains("\\") || filename.Contains("/"))
+							if (formparts.Count != 0)
+							{
+								foreach (var item in formparts)
+									if (item.Contains("filename=\""))
 									{
-										var parts = filename.Split(filename.Contains("\\") ? '\\' : '/');
-										filename = parts[parts.Length - 1];
+										var posttag = item.Substring(0, item.IndexOf(";"));
+										var data = item;
+										start = data.IndexOf("filename=\"") + "filename=\"".Length;
+										data = data.Remove(0, start);
+										end = data.IndexOf("\"");
+
+										var filename = data.Substring(0, end);
+										if (string.IsNullOrEmpty(filename))
+											continue;
+
+										if (filename.Contains("\\") || filename.Contains("/"))
+										{
+											var parts = filename.Split(filename.Contains("\\") ? '\\' : '/');
+											filename = parts[parts.Length - 1];
+										}
+
+										start = data.IndexOf("Content-Type: ");
+										data = data.Remove(0, start);
+										end = data.IndexOf("\r\n");
+										data = data.Remove(0, end + 2);
+
+										var filedata = context.Request.ContentEncoding
+											.GetBytes(data.Substring(2, data.IndexOf("\r\n--")));
+
+										var uploadpath = Filesystem.Combine(tmp, filename);
+										Task.Run(() => File.WriteAllBytes(uploadpath, filedata));
+
+										if (!formdata.ContainsKey(posttag))
+											formdata.Add(posttag, uploadpath);
+									}
+									else
+									{
+										var x = item.Replace("\r\n--", string.Empty).Replace("name=\"",
+											string.Empty).Replace("\"", string.Empty).Replace("\r\n\r\n", "|").Split('|');
+										x[0] = x[0].Replace(" file", string.Empty);
+
+										if (!formdata.ContainsKey(x[0]))
+											formdata.Add(x[0], x[1]);
 									}
 
-									start = data.IndexOf("Content-Type: ");
-									data = data.Remove(0, start);
-									end = data.IndexOf("\r\n");
-									data = data.Remove(0, end + 2);
+								formparts.Clear();
+							}
 
-									var filedata = context.Request.ContentEncoding
-										.GetBytes(data.Substring(2, data.IndexOf("\r\n--")));
-
-									var uploadpath = Filesystem.Combine(tmp, filename);
-									await Task.Run(() => File.WriteAllBytes(uploadpath, filedata));
-
-									if (!formdata.ContainsKey(posttag))
-										formdata.Add(posttag, uploadpath);
-								}
-								else
-								{
-									var x = item.Replace("\r\n--", string.Empty).Replace("name=\"",
-										string.Empty).Replace("\"", string.Empty).Replace("\r\n\r\n", "|").Split('|');
-									x[0] = x[0].Replace(" file", string.Empty);
-
-									if (!formdata.ContainsKey(x[0]))
-										formdata.Add(x[0], x[1]);
-								}
-
-							formparts.Clear();
 							formparts = null;
 						}
 						else
@@ -241,19 +254,18 @@ namespace Netvision.Backend.Network
 								if (xtmp[i].Contains("="))
 								{
 									var p = xtmp[i].Split('=');
-									if (!formdata.ContainsKey(p[0]))
+									if (!formdata.ContainsKey(p[0]) && p.Length != 0)
 										formdata.Add(p[0], HttpUtility.UrlDecode(p[1]).ToString());
 								}
 						}
 					}
-
 					break;
 				case "GET":
-					var get_params = string.Empty.Split('.');
-
 					if (tmp.Contains("?") && tmp.Contains("="))
 					{
-						get_params = tmp.Contains("&") ? tmp.Split('?')[1].Split('&') : tmp.Split('?');
+						var get_params = tmp.Contains("&") ?
+							tmp.Split('?')[1].Split('&') : tmp.Split('?');
+
 						for (var i = 0; i < get_params.Length; i++)
 							if (get_params[i].Contains("="))
 							{
@@ -265,7 +277,7 @@ namespace Netvision.Backend.Network
 
 					if (tmp.Contains("|"))
 					{
-						get_params = tmp.Split('|');
+						var get_params = tmp.Split('|');
 
 						for (var i = 0; i < get_params.Length; i++)
 							if (get_params[i].Contains("="))
@@ -287,16 +299,17 @@ namespace Netvision.Backend.Network
 		{
 			using (var db = new SQLDatabase("channels.db"))
 			{
-				var ext = path.Split('.')[1];
-
+				var ext = path.Contains(".") ? path.Split('.')[1] : string.Empty;
 				var ctype = string.Empty;
-				if (await db.Count("content_types", "ext", ext[1]) != 0)
-				{
-					ctype = await db.SQLQuery(string.Format("SELECT type FROM content_types WHERE ext='{0}'",
-						string.Concat(".", ext[ext.Length - 1])), "type");
 
-					context.Response.ContentType = ctype;
-				}
+				if (ext.Length > 1)
+					if (await db.Count("content_types", "ext", ext[1]) != 0)
+					{
+						ctype = await db.SQLQuery(string.Format("SELECT type FROM content_types WHERE ext='{0}'",
+							string.Concat(".", ext[ext.Length - 1])), "type");
+
+						context.Response.ContentType = ctype;
+					}
 			}
 
 			return path.ToLowerInvariant();
@@ -312,19 +325,19 @@ namespace Netvision.Backend.Network
 
 		public async void Send(byte[] data, HttpListenerContext context)
 		{
-			if (context == null)
+			if (context == null || context.Response.OutputStream == null)
 				return;
 
-			try
+			using (var strm = new BufferedStream(context.Response.OutputStream))
 			{
-				context.Response.ContentLength64 = data.Length;
-				await context.Response.OutputStream.WriteAsync(data, 0, data.Length);
-
-				context.Response.OutputStream.Close();
-			}
-			catch (Exception ex)
-			{
-				Console.WriteLine("Error: {0}", ex.Message);
+				try
+				{
+					context.Response.ContentLength64 = data.Length;
+					strm.WriteAsync(data, 0, data.Length);
+				}
+				catch (Exception ex)
+				{
+				}
 			}
 		}
 

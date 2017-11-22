@@ -72,9 +72,8 @@
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Core" />
-    <Reference Include="System.Data.SQLite, Version=1.0.105.2, Culture=neutral, PublicKeyToken=db937bc2d44ff139, processorArchitecture=AMD64">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\..\Program Files\System.Data.SQLite\2013\bin\System.Data.SQLite.dll</HintPath>
+    <Reference Include="System.Data.SQLite">
+      <HintPath>..\Netvision\bin\x64\Debug\System.Data.SQLite.dll</HintPath>
     </Reference>
     <Reference Include="System.Web" />
     <Reference Include="System.Xml.Linq" />
@@ -89,6 +88,8 @@
     <Compile Include="Backend.cs" />
     <Compile Include="Common\Database.cs" />
     <Compile Include="Common\Filesystem.cs" />
+    <Compile Include="Provider\MD5.cs" />
+    <Compile Include="Formats\MpegTS\Downloader.cs" />
     <Compile Include="Network\Backend.cs" />
     <Compile Include="Network\Backend\BackendHub.cs" />
     <Compile Include="Network\Backend\ChannelProvider.cs" />
@@ -109,9 +110,6 @@
     <Compile Include="Provider\Members\Server.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="NetVision.Nework.WebSite\Templates\site_content.tpl">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup />

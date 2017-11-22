@@ -14,7 +14,10 @@ namespace Netvision.Backend
 
 		public Filesystem(string path = "", int cache = 4096)
 		{
-			rootDir = !string.IsNullOrEmpty(path) ? path : Directory.GetCurrentDirectory();
+			rootDir = !string.IsNullOrEmpty(path) ?
+				Combine(Directory.GetCurrentDirectory(), path) :
+				Directory.GetCurrentDirectory();
+
 			fscache = cache;
 
 			Directory.CreateDirectory(rootDir);
@@ -93,7 +96,8 @@ namespace Netvision.Backend
 		/// <returns>The text.</returns>
 		/// <param name="path">Path.</param>
 		/// <param name="encoding">Encoding.</param>
-		public async Task<string> ReadText(string path, Encoding encoding) => encoding.GetString(await Read(path));
+		public async Task<string> ReadText(string path, Encoding encoding)
+			=> encoding.GetString(Read(path).Result);
 
 		/// <summary>
 		/// Read the specified file.
@@ -113,7 +117,7 @@ namespace Netvision.Backend
 
 				do
 				{
-					bytesRead = await fs.ReadAsync(data, 0, data.Length);
+					bytesRead = fs.ReadAsync(data, 0, data.Length).Result;
 				} while (bytesRead > 0);
 			}
 
@@ -142,8 +146,7 @@ namespace Netvision.Backend
 		/// <param name="count">Count.</param>
 		public async void Write(string path, string data)
 		{
-			var bytes = Encoding.UTF8.GetBytes(data);
-			await Task.Run(() => Write(path, bytes));
+			Write(path, Encoding.UTF8.GetBytes(data));
 		}
 
 		/// <summary>
@@ -160,17 +163,8 @@ namespace Netvision.Backend
 				Delete(f);
 
 				using (var gzfile = File.Create(ResolvePath(f)))
-				{
 					using (var zipstream = new GZipStream(gzfile, CompressionMode.Compress))
-					{
-						await fstream.CopyToAsync(zipstream);
-						zipstream.Close();
-					}
-
-					gzfile.Close();
-				}
-
-				fstream.Close();
+						fstream.CopyToAsync(zipstream);
 			}
 		}
 
@@ -190,7 +184,8 @@ namespace Netvision.Backend
 			if (!Exists(file))
 				return l;
 
-			using (var fs = new FileStream(ResolvePath(file), FileMode.Open, FileAccess.Read))
+			using (var fs = new FileStream(ResolvePath(file),
+				FileMode.Open, FileAccess.Read))
 				l = fs.Length;
 
 			return l;

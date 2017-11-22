@@ -36,6 +36,14 @@ namespace Netvision.Backend.Network
 		public WebSite(Netvision.Backend.Backend backend)
 		{
 			websitehub = new WebSiteHub(this);
+			websitehub.WebSiteHubResponse += (sender, e) =>
+			{
+				var evArgs = new WebSiteResponseEventArgs();
+				evArgs.Context = e.Context;
+				evArgs.Response = e.Response;
+
+				WebSiteResponse?.Invoke(this, evArgs);
+			};
 
 			backend.WebSiteRequest += (sender, e) =>
 			{
@@ -44,15 +52,6 @@ namespace Netvision.Backend.Network
 				evArgs.Parameters = e.Parameters;
 
 				WebSiteHubRequest?.Invoke(this, evArgs);
-			};
-
-			websitehub.WebSiteHubResponse += (sender, e) =>
-			{
-				var evArgs = new WebSiteResponseEventArgs();
-				evArgs.Context = e.Context;
-				evArgs.Response = e.Response;
-
-				WebSiteResponse?.Invoke(this, evArgs);
 			};
 		}
 	}

@@ -9,55 +9,91 @@ namespace Netvision.Backend.Provider
 	public sealed class HTTPClient
 	{
 		HttpWebRequest wc;
+		public delegate void HTTPClientErrorEventHandler(object sender, HTTPClientErrorEventArgs e);
+		public event HTTPClientErrorEventHandler HTTPClientError;
+		public class HTTPClientErrorEventArgs : EventArgs
+		{
+			public string Message;
+			public HTTPClientErrorEventArgs(string message)
+			{
+				this.Message = message;
+			}
+		}
+
+		public delegate void HTTPClientResponseEventHandler(object sender, HTTPClientResponseEventArgs e);
+		public event HTTPClientResponseEventHandler HTTPClientResponse;
+		public class HTTPClientResponseEventArgs : EventArgs
+		{
+			public string Data;
+			public HTTPClientResponseEventArgs(string data)
+			{
+				this.Data = data;
+			}
+		}
 
 		string contentType;
 		string useragent;
 		string method;
+		string url;
 
 		HttpStatusCode statuscode;
 
 		long contentLength;
 
-		public HTTPClient(string url, string method = "GET")
+		public HTTPClient(string url, string ua = "", string method = "GET")
 		{
 			this.method = method;
+			if (!string.IsNullOrEmpty(ua))
+				this.useragent = ua;
+
+			this.url = url;
+
 			contentType = string.Empty;
 			useragent = string.Empty;
+			statuscode = HttpStatusCode.NotFound;
 
 			wc = WebRequest.CreateHttp(url);
-			wc.AutomaticDecompression = DecompressionMethods.GZip;
+			wc.AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate;
 		}
 
-		public async Task<byte[]> GetResponse()
+		public void GetResponse(string name, bool etag = false, bool icyClient = false)
 		{
-			var x = new byte[0];
-
 			try
 			{
 				wc.UserAgent = useragent;
 				wc.Method = method;
+				if (etag)
+				{
+					wc.Headers.Add("ETag", MD5.GetMD5Hash(this.url));
+					wc.Headers.Add("Icy-Metadata", "1");
+				}
 
-				using (var response = (HttpWebResponse)await wc.GetResponseAsync())
+				using (var response = (HttpWebResponse)wc.GetResponse())
 				{
 					contentLength = response.ContentLength;
 					contentType = response.ContentType.Split(';')[0];
 					statuscode = response.StatusCode;
 
-					using (var strm = response.GetResponseStream())
-						using (var str = new StreamReader(strm))
-						{
-							var s = await str.ReadToEndAsync();
-							x = Encoding.UTF8.GetBytes(s);
-							contentLength = s.Length;
-						}
+					using (var str = new StreamReader(new BufferedStream(response.GetResponseStream()), true))
+					{
+						var result = str.ReadToEnd();
+						Task.Run(() => HTTPClientResponse?.Invoke(this, new HTTPClientResponseEventArgs(result)));
+
+						str.BaseStream.Close();
+						str.Close();
+					}
 				}
+
+				
 			}
 			catch (Exception ex)
 			{
-				await Task.Run(() => Console.WriteLine("HTTPClient Error: {0}", ex.Message));
+				Task.Run(() =>
+				{
+					HTTPClientError?.Invoke(this, new HTTPClientErrorEventArgs(
+						string.Format("HTTPClient Error: ({0}) {1}", name, ex.Message)));
+				});
 			}
-
-			return x;
 		}
 
 		public long ContentLength

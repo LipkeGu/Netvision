@@ -46,7 +46,7 @@ namespace Netvision.Backend.Provider
 					break;
 			}
 
-			var items = await db.SQLQuery<ulong>(string.Format("SELECT * FROM {0}", table));
+			var items = db.SQLQuery<ulong>(string.Format("SELECT * FROM {0}", table)).Result;
 			for (var i = ulong.MinValue; i < (ulong)items.Count; i++)
 			{
 				var item = Activator.CreateInstance(typeof(T));
@@ -103,15 +103,17 @@ namespace Netvision.Backend.Provider
 		public void Remove(string name)
 		{
 			if (Exist(name))
-				members.Remove(name);
+				lock (members)
+					members.Remove(name);
 		}
 
 		public void HeartBeat()
 		{
-			foreach (var item in members.Values
-				.Where(x => HasMethod(x.GetType(), "HeartBeat")))
+			lock (members)
+				foreach (var item in members.Values
+					.Where(x => HasMethod(x.GetType(), "HeartBeat")))
 
-				item.GetType().GetMethod("HeartBeat").Invoke(typeof(T), null);
+					item.GetType().GetMethod("HeartBeat").Invoke(typeof(T), null);
 		}
 
 		/// <summary>

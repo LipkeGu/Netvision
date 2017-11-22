@@ -1,0 +1,84 @@
+﻿* {
+	box-sizing: border-box;
+	margin: 0;
+	padding: 0;
+}
+
+nav, header, footer, main, aside, #page {
+	width: 100%;
+}
+
+header, footer {
+	height: 50px;
+	max-height: 50px;
+	clear: both;
+}
+
+#page {
+	width: 100%;
+	margin: 0 auto;
+}
+
+@media screen and (min-width: 1024px) {
+	#page {
+		width: 1024px;
+		min-height: 800px;
+	}
+
+	main {
+		max-width: 820px;
+		float: left;
+	}
+
+	aside {
+		max-width: 200px;
+		float: right;
+		min-height: 800px;
+	}
+
+	header {
+		float: left;
+		max-width: 254px;
+		height: 50px;
+		max-height: 50px;
+	}
+
+	nav {
+		max-width: 766px;
+		height: 50px;
+		max-height: 50px;
+		float: right;
+	}
+}
+
+@media screen and (min-width: 1280px) {
+	#page {
+		width: 1200px;
+		min-height: 800px;
+	}
+
+	header {
+		max-width: 100%;
+		height: 120px;
+		max-height: 120px;
+	}
+
+	main {
+		max-width: 760px;
+		margin-left: 15px;
+	}
+
+	nav {
+		max-height: unset;
+		height: unset;
+		float: left;
+		max-width: 200px;
+		min-height: 800px;
+	}
+
+	aside {
+		max-width: 200px;
+		float: right;
+		min-height: 800px;
+	}
+}

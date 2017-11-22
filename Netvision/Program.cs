@@ -10,7 +10,7 @@ namespace Netvision
 			var input = string.Empty;
 
 			while (input != "!exit")
-			input = Console.ReadLine();
+				input = Console.ReadLine();
 		}
 	}
 }

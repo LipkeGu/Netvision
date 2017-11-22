@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Netvision.Backend.Network;
 using System.Net;
 using System.Threading;
+using System.IO;
 
 namespace Netvision.Backend
 {
@@ -27,6 +28,7 @@ namespace Netvision.Backend
 		Epg,
 		Channel,
 		WebSite,
+		TSProxy,
 		Unknown
 	}
 
@@ -42,9 +44,10 @@ namespace Netvision.Backend
 			public HttpListenerContext Context;
 			public BackendTarget Target;
 			public BackendAction Action;
+			public int Provider;
 			public Dictionary<string, string> Parameters;
 		}
-		
+
 		Dictionary<string, HTTPSocket> HTTPSockets;
 		bool running = false;
 
@@ -54,11 +57,11 @@ namespace Netvision.Backend
 		public Backend(int port = 81)
 		{
 			db = new SQLDatabase("channels.db");
-
 			HTTPSockets = new Dictionary<string, HTTPSocket>();
 
-			HTTPSockets.Add("backend", new HTTPSocket("*", 81, string.Empty));
-			HTTPSockets.Add("website", new HTTPSocket("*", 82, string.Empty));
+			HTTPSockets.Add("backend", new HTTPSocket("*", port, string.Empty));
+			HTTPSockets.Add("website", new HTTPSocket("*", port + 1, string.Empty));
+			HTTPSockets.Add("tsproxy", new HTTPSocket("*", port + 2, string.Empty));
 
 			backend = new Network.Backend(ref db, this);
 			backend.BackendResponse += (sender, e) =>
@@ -72,6 +75,8 @@ namespace Netvision.Backend
 						e.Context.Response.StatusCode = 200;
 						e.Context.Response.StatusDescription = "OK";
 						e.Context.Response.ContentType = "application/x-mpegURL";
+						e.Context.Response.Headers.Add("Content-Disposition",
+							"attachment; filename=playlist.m3u8");
 						break;
 					case BackendTarget.Epg:
 						e.Context.Response.StatusCode = 200;
@@ -79,6 +84,11 @@ namespace Netvision.Backend
 						e.Context.Response.ContentType = "application/gzip";
 						break;
 					case BackendTarget.Channel:
+						break;
+					case BackendTarget.TSProxy:
+						e.Context.Response.StatusCode = 200;
+						e.Context.Response.StatusDescription = "OK";
+						e.Context.Response.ContentType = "video/mp2t";
 						break;
 					case BackendTarget.WebSite:
 					case BackendTarget.Unknown:
@@ -89,6 +99,12 @@ namespace Netvision.Backend
 				Task.Run(() => HTTPSockets["backend"].Send(
 					Encoding.UTF8.GetBytes(e.Response), e.Context)
 					);
+			};
+
+			HTTPSockets["tsproxy"].DataReceived += (sender, e) =>
+			{
+				using(var tsp = new Formats.TSDownloader())
+					tsp.Request(new Uri(e.Parameters["url"]), ref e.Context);
 			};
 
 			HTTPSockets["backend"].DataReceived += (sender, e) =>
@@ -117,7 +133,7 @@ namespace Netvision.Backend
 								e.Context.Response.StatusCode = 200;
 								e.Context.Response.StatusDescription = "OK";
 
-								HTTPSockets["backend"].Send(data, e.Context);
+								Task.Run(() => HTTPSockets["backend"].Send(data, e.Context));
 							}
 							else
 							{
@@ -142,8 +158,8 @@ namespace Netvision.Backend
 			website = new WebSite(this);
 			website.WebSiteResponse += (sender, e) =>
 			{
-				HTTPSockets["website"].Send(Encoding.UTF8.
-					GetBytes(e.Response), e.Context);
+				Task.Run(() => HTTPSockets["website"].Send(Encoding.UTF8.
+					GetBytes(e.Response), e.Context));
 			};
 
 			HTTPSockets["website"].DataReceived += (sender, e) =>
@@ -153,7 +169,7 @@ namespace Netvision.Backend
 					e.Context.Response.StatusCode = 403;
 					e.Context.Response.StatusDescription = "Forbidden";
 
-					HTTPSockets["website"].Send(new byte[0], e.Context);
+					Task.Run(() => HTTPSockets["website"].Send(new byte[0], e.Context));
 
 					return;
 				}

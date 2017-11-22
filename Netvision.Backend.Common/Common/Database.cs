@@ -19,17 +19,18 @@ namespace Netvision.Backend
 			Open();
 		}
 
-		async void Open() => await sqlConn.OpenAsync();
+		async void Open() => sqlConn.OpenAsync();
 
 		public async Task<int> Count<T>(string table, string condition, T value)
 		{
 			var x = 0;
 
-			using (var cmd = new SQLiteCommand(string.Format("SELECT Count({0}) FROM {1} WHERE {0}=\"{2}\"",
-							condition, table, string.Format("{0}", value)), sqlConn))
+			using (var cmd = new SQLiteCommand(
+				string.Format("SELECT Count({0}) FROM {1} WHERE {0}=\"{2}\"",
+					condition, table, string.Format("{0}", value)), sqlConn))
 			{
 				cmd.CommandType = CommandType.Text;
-				x = Convert.ToInt32(await cmd.ExecuteScalarAsync());
+				x = Convert.ToInt32(cmd.ExecuteScalarAsync().Result);
 			}
 
 			return x;
@@ -41,12 +42,12 @@ namespace Netvision.Backend
 			using (var cmd = new SQLiteCommand(sql, sqlConn))
 			{
 				cmd.CommandType = CommandType.Text;
-				await cmd.ExecuteNonQueryAsync();
+				var y = cmd.ExecuteNonQueryAsync().Result;
 
 				var reader = cmd.ExecuteReader();
 				var i = 0;
 
-				while (await reader.ReadAsync())
+				while (reader.Read())
 					if (!x.ContainsKey((T)Convert.ChangeType(i, typeof(T))))
 					{
 						x.Add((T)Convert.ChangeType(i, typeof(T)), reader.GetValues());
@@ -59,10 +60,13 @@ namespace Netvision.Backend
 			return x;
 		}
 
-		public async void SQLInsert(string sql)
+		public async Task<bool> SQLInsert(string sql)
 		{
+			var result = false;
 			using (var cmd = new SQLiteCommand(sql, sqlConn))
-				await cmd.ExecuteNonQueryAsync();
+				result = cmd.ExecuteNonQueryAsync().Result != 0;
+
+			return result;
 		}
 
 		public async Task<string> SQLQuery(string sql, string key)
@@ -71,13 +75,11 @@ namespace Netvision.Backend
 			using (var cmd = new SQLiteCommand(sql, sqlConn))
 			{
 				cmd.CommandType = CommandType.Text;
-				await cmd.ExecuteNonQueryAsync();
+				var x = cmd.ExecuteNonQueryAsync().Result;
 
-				var reader = await cmd.ExecuteReaderAsync();
-
-				await reader.ReadAsync();
-				
-				result = string.Format("{0}", reader[key]);
+				var reader = cmd.ExecuteReaderAsync().Result;
+				while (reader.Read())
+					result = string.Format("{0}", reader[key]);
 
 				reader.Close();
 			}
